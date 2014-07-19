@@ -1,0 +1,23 @@
+INSTALLATION NOTES
+pre-installation:
+* libspatialindex
+* GEOS, gdal
+* something with hdf5 and netcdf?
+
+python packages:
+* gdal, ogr, osr, rtree
+* 
+
+
+The MODIS downloader is from the pyModis toolset
+(c) Copyright Luca Delucchi 2010, licensed under the terms of GNU GPL 2.
+* https://github.com/lucadelu/pyModis/blob/master/pymodis/downmodis.py
+* http://pymodis.fem-environment.eu/info.html#how-to-install-pymodis
+* http://pymodis.fem-environment.eu/pymodis/pymodis.html#module-pymodis.downmodis
+
+The Mk_polygrid function is based on doVectorGrid.py, qgis fTools package
+(c) Copyright Carson Farmer 2008-2011, also licensed under GNU GPL2
+* https://github.com/qgis/QGIS/blob/master/python/plugins/fTools/tools/doVectorGrid.py
+
+Many obstacles were overcome with advice from the community at 
+* gis.stackexchange.com

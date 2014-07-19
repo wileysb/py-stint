@@ -1,0 +1,31 @@
+# PROJECT INFO #########################################################
+start_year      = 00   # starts 1 January, 20YY (late Feb if '00)
+end_year        = 13   # runs through 31 December, 20YY
+NODATA          = -999 # output nodata value
+
+
+# PATHS  ###############################################################
+aoi           = /data/NTNU/Minitest/Data/Landcover/clc06_ika_0711_K3.shp
+prj_name      = ideal
+prj_directory = /data/NTNU/Ideal/
+MODIS_dir     = /data/NTNU/Ideal/Data/MODIS/
+ERA_dir       = /data/NTNU/Ideal/Data/ERA/
+
+
+# ERA datasets #########################################################
+# short_name  = file1,file2,file3 ( in order of dates contained )      #
+sd            = ERA_sd_1.nc, ERA_sd_2.nc
+t2m           = ERA_t2m_1.nc, ERA_t2m_2.nc, ERA_t2m_3.nc
+
+
+# MODIS datasets #######################################################
+# dset   =  dnum:short_name, dnum:short_name, dnum:short_name          #
+MCD43A2  =     7:BSA_vis,       8:BSA_nir,       9:BSA_sw
+MCD43A3  =     0:BSA_quality,   1:BSA_full_quality
+MOD10A2  =     0:mse,           1:dsc
+
+
+# Landcover datasets ###################################################
+# lc_short_name  =  filename.tif OR shapefile field name               #
+# short_names should all start with 'lc_' for 'land cover'             #
+lc_category = code_06
