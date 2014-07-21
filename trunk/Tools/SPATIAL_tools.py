@@ -406,8 +406,9 @@ def Parse_extents(src_fn):
         out['ymin'] = np.min(hdf['y'])-out['dy']
         out['ymax'] = np.max(hdf['y'])
     elif src_ext == '.nc':
-        from Scientific.IO.NetCDF import NetCDFFile
-        #! NetCDFFile!!
+        #from Scientific.IO.NetCDF import NetCDFFile
+        from scipy.io.netcdf import netcdf_file as NetCDFFile
+        #Can this simply drop in like this?
         toprint =  'converting NetCDF Grid'
         toprint =  'assuming Geographic coordinates, WGS84'
         get4326 = osr.SpatialReference();get4326.ImportFromEPSG(4326)
