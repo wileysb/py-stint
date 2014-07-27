@@ -66,7 +66,7 @@ def Parse_input(fn):
                     nc_list = filter(bool,vals) # must preserve order!
                     nc_files = [nc.strip() for nc in nc_list]
                     prj_dir  = inp_params['prj_directory']
-                    era_path = inp_params['era_dir']
+                    era_path = inp_params['ERA_dir']
                     era_dir  = os.path.join(prj_dir,era_path)
                     nc_paths = [os.path.join(era_dir,ncf) 
                                 for ncf in nc_files]
@@ -112,7 +112,7 @@ def Check_input(inp_params):
     err = []
     
     # Collect project directories
-    dir_keys = ['era_dir','modis_dir','prj_directory']
+    dir_keys = ['ERA_dir','MODIS_dir','prj_directory']
     if inp_params['lc_type']=='tif_dir':
         dir_keys.append('lc_dir')
     
