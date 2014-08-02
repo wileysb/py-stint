@@ -30,7 +30,7 @@ from SPATIAL_tools import Parse_extents,Mk_bbox
 # load bounding box - from args, from shp, or from rasterS 
 
 ### DEFINE modis shapefile
-modis_tile_fn = '../Data/MODIS_tiles/modis_sinusoidal_grid_world.shp'
+modis_tile_fn = 'Data/MODIS_tiles/modis_sinusoidal_grid_world.shp'
 
 
 def Check_mod_tiles(xmin,ymin,xmax,ymax,dx,dy,srs):
