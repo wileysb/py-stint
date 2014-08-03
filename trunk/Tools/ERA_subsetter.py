@@ -27,7 +27,8 @@ import numpy as np
 import datetime as dt
 #from Scientific.IO.NetCDF import NetCDFFile
 from scipy.io.netcdf import netcdf_file as NetCDFFile
-#Can this simply drop in like this?from MODIS_aoi import Parse_extents, Mk_bbox
+#Can this simply drop in like this?
+from MODIS_aoi import Parse_extents, Mk_bbox
 from ORG_tools import Yearday2hrnum
 
 ### DEFINE GEOGRAPHIC PROJECTION, WGS84
@@ -49,8 +50,8 @@ def Start_era_hdf( project, hdfp):
     dlon = nclon[1]-nclon[0]
     dlat = nclat[1]-nclat[0]
 
-    nclon -= 0.5*dlon
-    nclat += 0.5*dlat
+    nclon = nclon - 0.5*dlon
+    nclat = nclat + 0.5*dlat
 
     x_s,x_e,y_s,y_e = Get_spatial_indexes(nclon, nclat, project['aoi'])
     hdlon = nclon[x_s:x_e]
