@@ -27,13 +27,9 @@ import numpy as np
 
 from SPATIAL_tools import Parse_extents,Mk_bbox
 # Use this tool to find modis tiles within a project's bounding box AOI
-# load bounding box - from args, from shp, or from rasterS 
+# load bounding box - from args, from shp, or from rasterS
 
-### DEFINE modis shapefile
-modis_tile_fn = 'Data/MODIS_tiles/modis_sinusoidal_grid_world.shp'
-
-
-def Check_mod_tiles(xmin,ymin,xmax,ymax,dx,dy,srs):
+def Check_mod_tiles(modis_tile_fn,xmin,ymin,xmax,ymax,dx,dy,srs):
     mod_grid  = ogr.Open(modis_tile_fn)
     mod_layer = mod_grid.GetLayer()
     sin_srs   = mod_layer.GetSpatialRef()
