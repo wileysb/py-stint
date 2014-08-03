@@ -31,7 +31,7 @@ from Tools.MODIS_subsetter import Mod2hdf
 from Tools.ERA_subsetter import Era2hdf
 
 # Load INPUT variables to 'project' dictionary
-project = Parse_input('INPUT_dev.txt')
+project = Parse_input('INPUT.txt')
 
 # Check for errors in input
 err = Check_input(project)
@@ -60,11 +60,11 @@ tif_dir = os.path.join(processing_dir,'TIF/')
 if not os.path.isdir(tif_dir):
     os.mkdir(tif_dir)
 # Expand 'project' dictionary
-project['aoi']         = Parse_extents(project['lc_src'])
+project['aoi']     = Parse_extents(project['lc_src'])
 project['hdf_dir'] = hdf_dir
 project['shp_dir'] = shp_dir
 project['tif_dir'] = tif_dir
-project['modis_tiles'] = Check_mod_tiles(**project['aoi'])
+project['modis_tiles'] = Check_mod_tiles(project['modis_tile_fn'],**project['aoi'])
 project['modis_days']  = Get_modis_days(project['start_year'], 
                                        project['end_year'])
 
