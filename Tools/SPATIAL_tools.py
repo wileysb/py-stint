@@ -1,5 +1,5 @@
 #  Intersection, reprojection, indexing, and other spatial functions
-#   part of MODIS/climate/landcover intersection toolset
+#   part of Spatial/Temporal Intersection Toolset
 #
 #  (c) Copyright Wiley Bogren 2014
 #  Authors:      Wiley Bogren
