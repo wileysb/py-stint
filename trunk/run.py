@@ -1,4 +1,4 @@
-#  Control tool for MODIS/climate/landcover intersection
+#  Control tool for Spatial/Temporal Intersection Toolset
 #
 #  (c) Copyright Wiley Bogren 2014
 #  Authors:      Wiley Bogren

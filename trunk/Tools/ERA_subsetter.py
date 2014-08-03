@@ -1,5 +1,5 @@
 #  NetCDF to HDF5 conversion for ERA climate archive 
-#   part of MODIS/climate/landcover intersection toolset
+#   part of Spatial/Temporal Intersection Toolset
 #
 #  (c) Copyright Wiley Bogren 2014
 #  Authors:      Wiley Bogren
