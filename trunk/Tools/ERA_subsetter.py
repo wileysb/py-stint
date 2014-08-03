@@ -148,8 +148,8 @@ def ERA_to_mdays(project,dset,start_time,src_nc):
     dlon  = nclon[1]-nclon[0]
     dlat  = nclat[1]-nclat[0]
 
-    nclon -= 0.5*dlon
-    nclat += 0.5*dlat
+    nclon = nclon - 0.5*dlon
+    nclat = nclat + 0.5*dlat
 
     x_s,x_e,y_s,y_e = Get_spatial_indexes(nclon,nclat,project['aoi'])
     missing_val  = src_nc[0].variables[dset].missing_value
@@ -161,7 +161,7 @@ def ERA_to_mdays(project,dset,start_time,src_nc):
         if intervals[k]:
             st = int(intervals[k][0])
             fi = int(intervals[k][1])
-            tot= len(src_nc[k].variables['time'])
+            tot= len(src_nc[k].variables['time'][:])
             if fi==(tot-1):
                 fi = None
             
