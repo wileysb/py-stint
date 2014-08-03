@@ -65,7 +65,7 @@ project['hdf_dir'] = hdf_dir
 project['shp_dir'] = shp_dir
 project['tif_dir'] = tif_dir
 project['modis_tiles'] = Check_mod_tiles(project['modis_tile_fn'],**project['aoi'])
-project['modis_days']  = Get_modis_days(project['start_year'], 
+project['modis_days']  = Get_modis_days(project['start_year'],
                                        project['end_year'])
 
 def Proceed(): # not coded yet!
@@ -225,4 +225,4 @@ if __name__ == '__main__':
             Run_stage(stage_num)
         except:
             # Encourage the user to provide an integer
-            print '[ ERROR ] argument, if any, should be normal integer'
+            print '[ ERROR ] executing run %1; is it a normal integer?' % sys.argv[1]
