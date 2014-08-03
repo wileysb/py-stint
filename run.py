@@ -225,4 +225,4 @@ if __name__ == '__main__':
             Run_stage(stage_num)
         except:
             # Encourage the user to provide an integer
-            print '[ ERROR ] executing run %1; is it a normal integer?' % sys.argv[1]
+            print '[ ERROR ] executing run %s; is it a normal integer?' % sys.argv[1]
