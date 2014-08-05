@@ -79,9 +79,11 @@ def Veclc2csv( project ):
             write fileB1, B2, ...: modis timeseries: 1 line/cell, *scale+off
     '''
     ## Define some paths
-    lcm_dsn = project['prj_name']+'_lcm'
+    lcm_dsn  = project['prj_name']+'_lcm'
     lcm_path = os.path.join(project['shp_dir'],lcm_dsn)
 
+    mod_dsn = project['prj_name']+'_modis_reprj'
+    mod_path= os.path.join(project['shp_dir'],mod_dsn)
     ## Get ERA id and hdf5 indices from lcm shapefile
     lcm_ds  = ogr.Open(lcm_path+'.shp',gdalconst.GA_ReadOnly)
 
@@ -107,22 +109,32 @@ def Veclc2csv( project ):
 
     ## Get MODIS id and hdf5 indices from lcm shapefile
     lcm_ds  = ogr.Open(lcm_path+'.shp',gdalconst.GA_ReadOnly)
+    mod_ds  = ogr.Open(mod_path+'.shp',gdalconst.GA_ReadOnly)
     mod_id_list = Unique_values( lcm_path,"mod_id")
     mod_ind_list= []
     ind_sql_ = 'SELECT mod_x_ind,mod_y_ind FROM %s WHERE mod_id=%i'
+    mod_sql_ = 'SELECT ctr_x,ctr_y FROM %s WHERE id=%i'
     for mod_id in mod_id_list:
         ind_sql = ind_sql_ % (lcm_dsn, mod_id)
+        mod_sql = mod_sql_ % (mod_dsn, mod_id)
         ind_lyr = lcm_ds.ExecuteSQL(ind_sql)
         ind_feat= ind_lyr.GetNextFeature()
 
         mod_x_ind = ind_feat.GetField(0)
         mod_y_ind = ind_feat.GetField(1)
 
-        mod_ind_list.append((mod_id,mod_x_ind,mod_y_ind))
+        mod_lyr   = mod_ds.ExecuteSQL(mod_sql)
+        mod_feat  = mod_lyr.GetNextFeature()
+        geom      = mod_feat.GetGeometryRef()
+        mod_area  = geom.Area()
+
+        mod_ind_list.append((mod_id,mod_x_ind,mod_y_ind,mod_area))
+
+        # add area!
 
     del lcm_ds,ind_lyr
 
-
+    ## Check for number of landcover features, and export to CSV
     lcm_ds  = ogr.Open(lcm_path+'.shp',gdalconst.GA_ReadOnly)
     lcm_lyr = lcm_ds.GetLayer(0)
     lcm_sz  = lcm_lyr.GetFeatureCount()
@@ -150,12 +162,61 @@ def Raslc2csv( project, ras_lcm):
 
 
 def Land2csv(project, mod_ind_list):
+    lcm_dsn  = project['prj_name']+'_lcm'
+    lcm_path = os.path.join(project['shp_dir'],lcm_dsn)
+    lcm_ds  = ogr.Open(lcm_path+'.shp',gdalconst.GA_ReadOnly)
+
+    lc_csv_fn = os.path.join(project['csv_dir'],
+                              project['prj_name']+'_lc.csv')
+    hdr = ['id','area','modis_id','era_id']
+    # Do we want cell-center coordinates for modis? era? lc?
+    # Which projections?
+    for attrib in project['lc'].keys():
+        hdr.append(attrib)
 
 
+    del lcm_ds
 
-def Mod2csv(project,modis_sds,mod_ind_list):
+
+def Mod2csv(project,mod_sds,mod_ind_list):
     TODO = 'reproduce Era2csv, below'
-    # Add area!
+    mod_csv_fn = os.path.join(project['csv_dir'],
+                              project['prj_name']+'_'+mod_sds+'.csv')
+    mod_hdf_fn = os.path.join(project['hdf_dir'],
+                              project['prj_name']+'_'+mod_sds+'.hdf5')
+
+    mod_hdf    = h5py.File(mod_hdf_fn,'r')
+
+    if len(project['modis_days']) != len(mod_hdf['time']):
+        print '[ERROR] LENGTH MISMATCH: hdf time dimension and modis_days'
+        print mod_hdf_fn
+
+    hdr = project['modis_days'][:]
+    for col_name in ['mod_y_ind','mod_x_ind','mod_area','mod_id']:
+        hdr.insert(0,col_name)
+
+    mod_csv_f = open(mod_csv_fn,'wt')
+    mod_csv    = csv.writer(mod_csv_f)
+    mod_csv.writerow(hdr)
+
+    scale = mod_hdf[mod_sds].attrs['scale_factor']
+    offset= mod_hdf[mod_sds].attrs['add_offset']
+    mod_nan = mod_hdf[mod_sds].attrs['fill_value']
+
+    for mod_line in mod_ind_list:
+        mod_id    = mod_line[0]
+        mod_x_ind = mod_line[1]
+        mod_y_ind = mod_line[2]
+        mod_area  = mod_line[3]
+        out = mod_hdf[mod_sds][:,mod_y_ind,mod_x_ind]
+        out = list(np.where(out==mod_nan,np.nan,out)*scale+offset)
+        for val in [mod_y_ind,mod_x_ind,mod_area,mod_id]:
+            out.insert(0,val)
+        # Should we reduce the precision of the csv output?
+        mod_csv.writerow(out)
+
+    mod_csv_f.close()
+    mod_hdf.close()
 
 
 def Era2csv(project, era_sds, era_ind_list):
