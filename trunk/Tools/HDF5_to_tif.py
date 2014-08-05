@@ -26,7 +26,6 @@ import os,sys,ogr,osr,gdal,h5py
 import numpy as np
 from ORG_tools import Daynum2date, Parse_input
 
-input_fn = '../INPUT_dev.txt'
 
 def Ld_src_array(h5f,i,sds):
     '''

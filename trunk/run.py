@@ -59,23 +59,37 @@ if not os.path.isdir(shp_dir):
 tif_dir = os.path.join(processing_dir,'TIF/')
 if not os.path.isdir(tif_dir):
     os.mkdir(tif_dir)
+
+## DEFINE AND RESOLVE OUTPUT DIRECTORY
+out_dir = os.path.join(project['prj_directory'],'Output/')
+if not os.path.isdir(out_dir):
+    os.mkdir(out_dir)
+
+## DEFINE AND RESOLVE CSV OUTPUT DIRECTORY
+csv_dir = os.path.join(out_dir,'CSV/')
+if not os.path.isdir(csv_dir):
+    os.mkdir(csv_dir)
+
 # Expand 'project' dictionary
 project['aoi']     = Parse_extents(project['lc_src'])
 project['hdf_dir'] = hdf_dir
 project['shp_dir'] = shp_dir
 project['tif_dir'] = tif_dir
+project['out_dir'] = out_dir
+project['csv_dir'] = csv_dir
 project['modis_tiles'] = Check_mod_tiles(project['modis_tile_fn'],**project['aoi'])
-project['modis_days']  = Get_modis_days(project['start_year'],
-                                       project['end_year'])
+project['modis_days']  = Get_modis_days( project['start_year'],
+                                         project['end_year'])
 
 def Proceed(): # not coded yet!
-    num_stages = 7
-    last_stage = Ld_stage_file() # Read stage file
+    #num_stages = 7
+    #last_stage = Ld_stage_file() # Read stage file
     # Check products up through last_stage
     # Clean up anything beyond last_stage and check directory structure
-    start_stage = last_stage
-    for stage_num in range(start_stage,numstages+1):
-        Run_stage(stage_num)    
+    #start_stage = last_stage
+    #for stage_num in range(start_stage,num_stages+1):
+    #    Run_stage(stage_num)
+    TODO = 'code this'
 
 
 def Get_modis(tiles,dates,modis_dir,mflaws):
