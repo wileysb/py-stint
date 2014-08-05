@@ -78,8 +78,11 @@ def Veclc2csv( project ):
             write fileA: forestry/lc attrs + mod_id,era_id: 1 line/feat
             write fileB1, B2, ...: modis timeseries: 1 line/cell, *scale+off
     '''
+    ## Define some paths
     lcm_dsn = project['prj_name']+'_lcm'
     lcm_path = os.path.join(project['shp_dir'],lcm_dsn)
+
+    ## Get ERA id and hdf5 indices from lcm shapefile
     lcm_ds  = ogr.Open(lcm_path+'.shp',gdalconst.GA_ReadOnly)
 
     era_id_list = Unique_values( lcm_path,"era_id")
@@ -95,18 +98,45 @@ def Veclc2csv( project ):
 
         era_ind_list.append((era_id,era_x_ind,era_y_ind))
 
+    del lcm_ds,ind_lyr
+
+    ## Write each ERA dataset to CSV, one row per cell within aoi
     for era_sds in project['era'].keys():
         Era2csv(project, era_sds, era_ind_list)
 
 
+    ## Get MODIS id and hdf5 indices from lcm shapefile
+    lcm_ds  = ogr.Open(lcm_path+'.shp',gdalconst.GA_ReadOnly)
     mod_id_list = Unique_values( lcm_path,"mod_id")
-    # Split mod_ids into groups of 50
-    # for each group of 50, open new outfile_number
-       # for each modis id within the group of 50:
-            # layer.SetAttributeFilter("mod_id = '%s'" % mod_id_val)
-            # for feature in layer:
-            #     find modis sum
-            #     write climate data for that feat
+    mod_ind_list= []
+    ind_sql_ = 'SELECT mod_x_ind,mod_y_ind FROM %s WHERE mod_id=%i'
+    for mod_id in mod_id_list:
+        ind_sql = ind_sql_ % (lcm_dsn, mod_id)
+        ind_lyr = lcm_ds.ExecuteSQL(ind_sql)
+        ind_feat= ind_lyr.GetNextFeature()
+
+        mod_x_ind = ind_feat.GetField(0)
+        mod_y_ind = ind_feat.GetField(1)
+
+        mod_ind_list.append((mod_id,mod_x_ind,mod_y_ind))
+
+    del lcm_ds,ind_lyr
+
+
+    lcm_ds  = ogr.Open(lcm_path+'.shp',gdalconst.GA_ReadOnly)
+    lcm_lyr = lcm_ds.GetLayer(0)
+    lcm_sz  = lcm_lyr.GetFeatureCount()
+    if lcm_sz > 20000:
+        TODO = 'Split up output files'
+        # Split mod_ids into groups of 50
+        # for each group of 50, open new outfile_number
+    else:
+        Land2csv( project, mod_ind_list )
+        for mod_type in project['modis'].keys():
+            for modis_sds in project['modix'][mod_type].values():
+                Mod2csv(project, modis_sds, mod_ind_list)
+
+    del lcm_ds,lcm_lyr
 
 
 def Raslc2csv( project, ras_lcm):
@@ -117,6 +147,15 @@ def Raslc2csv( project, ras_lcm):
     hmm+= 'Then poly_dsn = mod+era, ras_fn = landcover, dst_p = (mod+era)X(landcover)'
     print hmm
     return hmm
+
+
+def Land2csv(project, mod_ind_list):
+
+
+
+def Mod2csv(project,modis_sds,mod_ind_list):
+    TODO = 'reproduce Era2csv, below'
+    # Add area!
 
 
 def Era2csv(project, era_sds, era_ind_list):
