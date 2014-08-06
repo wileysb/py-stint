@@ -145,7 +145,7 @@ def Veclc2csv( project ):
     else:
         Land2csv( project, mod_ind_list )
         for mod_type in project['modis'].keys():
-            for modis_sds in project['modix'][mod_type].values():
+            for modis_sds in project['modis'][mod_type].values():
                 Mod2csv(project, modis_sds, mod_ind_list)
 
     del lcm_ds,lcm_lyr
@@ -161,13 +161,16 @@ def Raslc2csv( project, ras_lcm):
     return hmm
 
 
-def Land2csv(project, mod_ind_list):
+def Land2csv(project, mod_ind_list, region = None):
     lcm_dsn  = project['prj_name']+'_lcm'
     lcm_path = os.path.join(project['shp_dir'],lcm_dsn)
     lcm_ds  = ogr.Open(lcm_path+'.shp',gdalconst.GA_ReadOnly)
-
-    lc_csv_fn = os.path.join(project['csv_dir'],
-                              project['prj_name']+'_lc.csv')
+    if not region:
+        lc_csv_fn = os.path.join(project['csv_dir'],
+                                 project['prj_name']+'_lc.csv')
+    else:
+        lc_csv_fn = os.path.join(project['csv_dir'],
+                                 project['prj_name']+'_lc_'+str(region)+'.csv')
     hdr = ['id','area','modis_id','era_id']
     # Do we want cell-center coordinates for modis? era? lc?
     # Which projections?
@@ -178,10 +181,15 @@ def Land2csv(project, mod_ind_list):
     del lcm_ds
 
 
-def Mod2csv(project,mod_sds,mod_ind_list):
+def Mod2csv(project,mod_sds,mod_ind_list, region = None):
     TODO = 'reproduce Era2csv, below'
-    mod_csv_fn = os.path.join(project['csv_dir'],
-                              project['prj_name']+'_'+mod_sds+'.csv')
+    if not region:
+        mod_csv_fn = os.path.join(project['csv_dir'],
+                     project['prj_name']+'_'+mod_sds+'.csv')
+    else:
+        mod_csv_fn = os.path.join(project['csv_dir'],
+                     project['prj_name']+'_'+mod_sds+'_'+str(region)+'.csv')
+
     mod_hdf_fn = os.path.join(project['hdf_dir'],
                               project['prj_name']+'_'+mod_sds+'.hdf5')
 
