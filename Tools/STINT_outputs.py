@@ -169,22 +169,53 @@ def Land2csv(project, mod_ind_list, region = None):
         lc_csv_fn = os.path.join(project['csv_dir'],
                                  project['prj_name']+'_lc.csv')
     else:
-        lc_csv_fn = os.path.join(project['csv_dir'],
+        out_dir =  os.path.join(project['csv_dir'],'lc')
+        if not os.path.isdir(out_dir):
+            os.mkdir(out_dir)
+        lc_csv_fn = os.path.join(out_dir,
                                  project['prj_name']+'_lc_'+str(region)+'.csv')
+
+# Do we want cell-center coordinates for modis? era? lc?
+# Which projections?
     hdr = ['id','area','modis_id','era_id']
-    # Do we want cell-center coordinates for modis? era? lc?
-    # Which projections?
+    lc_attrs = ''
     for attrib in project['lc'].keys():
         hdr.append(attrib)
+        lc_attrs += ',lc_'+project['lc'][attrib]
 
+    lc_csv_f = open(lc_csv_fn,'wt')
+    lc_csv   = csv.writer(lc_csv_f)
+    lc_csv.writerow(hdr)
+
+    lc_sql_ = 'SELECT id,area,mod_id,era_id'+lc_attrs+' FROM '+lcm_dsn+\
+              ' WHERE mod_id=%i'
+    for mod_ind in mod_ind_list:
+        mod_id = mod_ind[0]
+        lc_sql = lc_sql_ % mod_id
+        lc_lyr = lcm_ds.ExecuteSQL(lc_sql)
+        lc_feat= lc_lyr.GetNextFeature()
+        while lc_feat:
+            lc_id   = lc_feat.GetField('id')
+            lc_area = lc_feat.GetField('area')
+            mod_id  = lc_feat.GetField('mod_id')
+            era_id  = lc_feat.GetField('era_id')
+            out = [lc_id,lc_area,mod_id,era_id]
+            for attrib in lc_attrs.split(','):
+                if len(attrib)>0:
+                    out.append(lc_feat.GetField(attrib))
+            lc_csv.writerow(out)
+            lc_feat = lc_lyr.GetNextFeature()
 
     del lcm_ds
+    lc_csv_f.close()
 
 
 def Mod2csv(project,mod_sds,mod_ind_list, region = None):
-    TODO = 'reproduce Era2csv, below'
     if not region:
-        mod_csv_fn = os.path.join(project['csv_dir'],
+        out_dir =  os.path.join(project['csv_dir'],mod_sds)
+        if not os.path.isdir(out_dir):
+            os.mkdir(out_dir)
+        mod_csv_fn = os.path.join(out_dir,
                      project['prj_name']+'_'+mod_sds+'.csv')
     else:
         mod_csv_fn = os.path.join(project['csv_dir'],
