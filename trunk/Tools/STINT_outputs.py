@@ -148,8 +148,6 @@ def Veclc2csv( project ):
                 Mod2csv(project, modis_sds, mod_ind_list)
 
 
-
-
 def Raslc2csv( project, ras_lcm):
     # ras_lcm will consist of ras_fn,poly_dsn,dst_p
     isect  = cPickle.load(open(ras_lcm['p'],'r'))
