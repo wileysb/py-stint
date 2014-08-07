@@ -22,8 +22,7 @@
 #
 ##################################################################
 
-import osr,ogr,os,sys
-import numpy as np
+import osr,ogr,sys
 
 from SPATIAL_tools import Parse_extents,Mk_bbox
 # Use this tool to find modis tiles within a project's bounding box AOI

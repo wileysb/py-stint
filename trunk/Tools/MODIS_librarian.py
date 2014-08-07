@@ -22,9 +22,8 @@
 #
 ##################################################################
 
-import os,sys,glob
-import gdal,gdalconst
-import numpy as np
+import os,glob
+import gdal
 
 
 def Retrieve_archive(project):
@@ -103,13 +102,13 @@ def Record_flaws(flaws,out_dsn):
                 outf.write('%s %s \n' % flaws['partial'][i])
 
 
-if __name__ == '__main__':
-    flaw_sum = '%s %s had %s missing, %s corrupt, and %s partial files'
-    for dset in MOD_dsets.keys():
-        for mtile in ['h18v01','h18v02','h18v03','h19v01','h19v02','h19v03']:
-            flaws = Val_mod(dset, mtile, mdays)
-            flaw_args = (dset,mtile,len(flaws['missing']),
-                    len(flaws['corrupt']),len(flaws['partial']))
-            print flaw_sum % flaw_args
-            Record_flaws(flaws,dset+'_'+mtile)
+#if __name__ == '__main__':
+#    flaw_sum = '%s %s had %s missing, %s corrupt, and %s partial files'
+#    for dset in MOD_dsets.keys():
+#        for mtile in ['h18v01','h18v02','h18v03','h19v01','h19v02','h19v03']:
+#            flaws = Val_mod(dset, mtile, mdays)
+#            flaw_args = (dset,mtile,len(flaws['missing']),
+#                    len(flaws['corrupt']),len(flaws['partial']))
+#            print flaw_sum % flaw_args
+#           Record_flaws(flaws,dset+'_'+mtile)
 

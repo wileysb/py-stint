@@ -23,8 +23,8 @@
 ##################################################################
 __author__ = 'wiley'
 
-import os,sys,math,cPickle,csv
-import rtree,ogr,osr,gdal,gdalconst,h5py
+import os,cPickle,csv
+import ogr,gdalconst,h5py
 import numpy as np
 
 
@@ -177,7 +177,7 @@ def Land2csv(project, mod_ind_list, region = None):
 
 # Do we want cell-center coordinates for modis? era? lc?
 # Which projections?
-    hdr = ['id','area','modis_id','era_id']
+    hdr = ['id','area','lc_id','modis_id','era_id']
     lc_attrs = ''
     for attrib in project['lc'].keys():
         hdr.append(attrib)
@@ -187,7 +187,7 @@ def Land2csv(project, mod_ind_list, region = None):
     lc_csv   = csv.writer(lc_csv_f)
     lc_csv.writerow(hdr)
 
-    lc_sql_ = 'SELECT id,area,mod_id,era_id'+lc_attrs+' FROM '+lcm_dsn+\
+    lc_sql_ = 'SELECT id,area,lc_id,mod_id,era_id'+lc_attrs+' FROM '+lcm_dsn+\
               ' WHERE mod_id=%i'
     for mod_ind in mod_ind_list:
         mod_id = mod_ind[0]
@@ -195,11 +195,12 @@ def Land2csv(project, mod_ind_list, region = None):
         lc_lyr = lcm_ds.ExecuteSQL(lc_sql)
         lc_feat= lc_lyr.GetNextFeature()
         while lc_feat:
-            lc_id   = lc_feat.GetField('id')
-            lc_area = lc_feat.GetField('area')
-            mod_id  = lc_feat.GetField('mod_id')
-            era_id  = lc_feat.GetField('era_id')
-            out = [lc_id,lc_area,mod_id,era_id]
+            lcm_id   = lc_feat.GetField('id')
+            lcm_area = lc_feat.GetField('area')
+            lc_id    = lc_feat.GetField('lc_id')
+            mod_id   = lc_feat.GetField('mod_id')
+            era_id   = lc_feat.GetField('era_id')
+            out = [lcm_id,lcm_area,lc_id,mod_id,era_id]
             for attrib in lc_attrs.split(','):
                 if len(attrib)>0:
                     out.append(lc_feat.GetField(attrib))
@@ -225,13 +226,15 @@ def Mod2csv(project,mod_sds,mod_ind_list, region = None):
                               project['prj_name']+'_'+mod_sds+'.hdf5')
 
     mod_hdf    = h5py.File(mod_hdf_fn,'r')
+    mod_x  = mod_hdf['x'][:]
+    mod_y  = mod_hdf['y'][:]
 
     if len(project['modis_days']) != len(mod_hdf['time']):
         print '[ERROR] LENGTH MISMATCH: hdf time dimension and modis_days'
         print mod_hdf_fn
 
     hdr = project['modis_days'][:]
-    for col_name in ['mod_y_ind','mod_x_ind','mod_area','mod_id']:
+    for col_name in ['mod_y_sin','mod_x_sin','mod_y_ind','mod_x_ind','mod_area','mod_id']:
         hdr.insert(0,col_name)
 
     mod_csv_f = open(mod_csv_fn,'wt')
@@ -247,9 +250,11 @@ def Mod2csv(project,mod_sds,mod_ind_list, region = None):
         mod_x_ind = mod_line[1]
         mod_y_ind = mod_line[2]
         mod_area  = mod_line[3]
+        mod_x_sin = mod_x[mod_x_ind]
+        mod_y_sin = mod_y[mod_y_ind]
         out = mod_hdf[mod_sds][:,mod_y_ind,mod_x_ind]
         out = list(np.where(out==mod_nan,np.nan,out)*scale+offset)
-        for val in [mod_y_ind,mod_x_ind,mod_area,mod_id]:
+        for val in [mod_y_sin,mod_x_sin,mod_y_ind,mod_x_ind,mod_area,mod_id]:
             out.insert(0,val)
         # Should we reduce the precision of the csv output?
         mod_csv.writerow(out)
@@ -272,13 +277,16 @@ def Era2csv(project, era_sds, era_ind_list):
                               project['prj_name']+'_'+era_sds+'.hdf5')
 
     era_hdf    = h5py.File(era_hdf_fn,'r')
+    # Get axes coordinates, hdf grid
+    era_x  = era_hdf['x'][:]
+    era_y  = era_hdf['y'][:]
 
     if len(project['modis_days']) != len(era_hdf['time']):
         print '[ERROR] LENGTH MISMATCH: hdf time dimension and modis_days'
         print era_hdf_fn
 
     hdr = project['modis_days'][:]
-    for col_name in ['era_y_ind','era_x_ind','era_id']:
+    for col_name in ['era_y_wgs84','era_x_wgs84','era_y_ind','era_x_ind','era_id']:
         hdr.insert(0,col_name)
 
     era_csv_f = open(era_csv_fn,'wt')
@@ -293,11 +301,12 @@ def Era2csv(project, era_sds, era_ind_list):
         era_id    = era_line[0]
         era_x_ind = era_line[1]
         era_y_ind = era_line[2]
+        era_x_wgs84 = era_x[era_x_ind]
+        era_y_wgs84 = era_y[era_y_ind]
         out = era_hdf[era_sds][:,era_y_ind,era_x_ind]
         out = list(np.where(out==era_nan,np.nan,out)*scale+offset)
-        for val in [era_y_ind,era_x_ind,era_id]:
+        for val in [era_y_wgs84,era_x_wgs84,era_y_ind,era_x_ind,era_id]:
             out.insert(0,val)
-        # Should we reduce the precision of the csv output?
         era_csv.writerow(out)
 
     era_csv_f.close()

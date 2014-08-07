@@ -23,7 +23,7 @@
 ##################################################################
 
 import os,sys,math,cPickle
-import rtree,ogr,osr,gdal,gdalconst
+import rtree,ogr,osr,gdalconst
 import numpy as np
 
 class FastRtree(rtree.Rtree):

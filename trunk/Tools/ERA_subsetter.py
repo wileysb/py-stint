@@ -22,13 +22,13 @@
 #
 ##################################################################
 
-import os,sys,glob,ogr,osr,gdal,h5py,multiprocessing
+import os,sys,osr,h5py,multiprocessing
 import numpy as np
 import datetime as dt
 #from Scientific.IO.NetCDF import NetCDFFile
 from scipy.io.netcdf import netcdf_file as NetCDFFile
 #Can this simply drop in like this?
-from MODIS_aoi import Parse_extents, Mk_bbox
+from MODIS_aoi import Mk_bbox
 from ORG_tools import Yearday2hrnum
 
 ### DEFINE GEOGRAPHIC PROJECTION, WGS84
