@@ -25,7 +25,7 @@ import sys,os
 import Tools.SPATIAL_tools
 from Tools.ORG_tools import Parse_input, Check_input,Get_modis_days
 from Tools.MODIS_aoi import Parse_extents, Check_mod_tiles
-from Tools.MODIS_librarian import Val_mod, Gather_mod_flaws
+from Tools.MODIS_librarian import Gather_mod_flaws
 from Tools.ERA_librarian import Val_era
 from Tools.MODIS_subsetter import Mod2hdf
 from Tools.ERA_subsetter import Era2hdf

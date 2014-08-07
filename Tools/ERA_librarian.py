@@ -22,7 +22,7 @@
 #
 ##################################################################
 
-import osr
+import osr,sys
 import datetime as dt
 import numpy as np
 #from Scientific.IO.NetCDF import NetCDFFile
@@ -31,7 +31,7 @@ from scipy.io.netcdf import netcdf_file as NetCDFFile
 
 from MODIS_aoi import Parse_extents, Mk_bbox
 from ORG_tools import Yearday2hrnum
-from ERA_subsetter import Build_src_nc, wgs84
+from ERA_subsetter import wgs84
 
 
 def Val_era( project ):

@@ -22,11 +22,10 @@
 #
 ##################################################################
 
-import os,sys,glob,ogr,osr,gdal,h5py,multiprocessing,math
+import os,sys,osr,gdal,h5py,multiprocessing
 import numpy as np
 import datetime as dt
-from MODIS_aoi import Parse_extents, Check_mod_tiles, Mk_bbox
-from ORG_tools import Get_modis_days
+from MODIS_aoi import Mk_bbox
 from MODIS_librarian import Get_modis_fn
 
 ### DEFINE MODIS SINUSOIDAL PROJECTION
