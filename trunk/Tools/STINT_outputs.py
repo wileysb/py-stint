@@ -130,14 +130,13 @@ def Veclc2csv( project ):
 
         mod_ind_list.append((mod_id,mod_x_ind,mod_y_ind,mod_area))
 
-        # add area!
-
     del lcm_ds,ind_lyr
 
     ## Check for number of landcover features, and export to CSV
     lcm_ds  = ogr.Open(lcm_path+'.shp',gdalconst.GA_ReadOnly)
     lcm_lyr = lcm_ds.GetLayer(0)
     lcm_sz  = lcm_lyr.GetFeatureCount()
+    del lcm_ds,lcm_lyr
     if lcm_sz > 20000:
         TODO = 'Split up output files'
         # Split mod_ids into groups of 50
@@ -148,7 +147,7 @@ def Veclc2csv( project ):
             for modis_sds in project['modis'][mod_type].values():
                 Mod2csv(project, modis_sds, mod_ind_list)
 
-    del lcm_ds,lcm_lyr
+
 
 
 def Raslc2csv( project, ras_lcm):
@@ -212,14 +211,25 @@ def Land2csv(project, mod_ind_list, region = None):
 
 
 def Mod2csv(project,mod_sds,mod_ind_list, region = None):
+    '''
     if not region:
+        lc_csv_fn = os.path.join(project['csv_dir'],
+                                 project['prj_name']+'_lc.csv')
+    else:
+        out_dir =  os.path.join(project['csv_dir'],'lc')
+        if not os.path.isdir(out_dir):
+            os.mkdir(out_dir)
+        lc_csv_fn = os.path.join(out_dir,
+                                 project['prj_name']+'_lc_'+str(region)+'.csv')
+    '''
+    if not region:
+        mod_csv_fn = os.path.join(project['csv_dir'],
+                     project['prj_name']+'_'+mod_sds+'.csv')
+    else:
         out_dir =  os.path.join(project['csv_dir'],mod_sds)
         if not os.path.isdir(out_dir):
             os.mkdir(out_dir)
         mod_csv_fn = os.path.join(out_dir,
-                     project['prj_name']+'_'+mod_sds+'.csv')
-    else:
-        mod_csv_fn = os.path.join(project['csv_dir'],
                      project['prj_name']+'_'+mod_sds+'_'+str(region)+'.csv')
 
     mod_hdf_fn = os.path.join(project['hdf_dir'],
