@@ -29,6 +29,7 @@ from Tools.MODIS_librarian import Gather_mod_flaws
 from Tools.ERA_librarian import Val_era
 from Tools.MODIS_subsetter import Mod2hdf
 from Tools.ERA_subsetter import Era2hdf
+from Tools.STINT_outputs import Veclc2csv
 
 # Load INPUT variables to 'project' dictionary
 project = Parse_input('INPUT.txt')
@@ -215,6 +216,10 @@ def Run_stage(stage_num):
                       'area'    : True      }
         print 'Intersecting lcc.shp with MODIS grid for final Landcover-Climate-MODIS (lcm) shapefile'
         Tools.SPATIAL_tools.Isect_poly_idx( **lcm_params )
+
+    elif stage_num == 7:
+        # Export era, modis, and intersected landcover to csv!
+        Veclc2csv(project)
 
 
 if __name__ == '__main__':

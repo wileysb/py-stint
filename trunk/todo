@@ -1,9 +1,11 @@
-**i) Check type management - do quality, BSA, and ERA keep
+i) Check type management - do quality, BSA, and ERA keep
      the right data types from source to csv?
-*1) Implement raslc2csv
-*2) Explore faster Land2csv through indexing dbf attributes
-*3) Implement MODIS archiving functions, and archive repair
-*4) hdf5 viewer for visualizing hdf raster timeseries
-**4a) Start by debugging hdf5_to_tif
-**4b) Then, maybe more advanced GUI viewer ?
+ii) add progress % to csv output 
+
+1) Implement raslc2csv
+2) Explore faster Land2csv through indexing dbf attributes
+3) Implement MODIS archiving functions, and archive repair
+4) hdf5 viewer for visualizing hdf raster timeseries
+4a) Start by debugging hdf5_to_tif
+4b) Then, maybe more advanced GUI viewer ?
  
