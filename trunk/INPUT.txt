@@ -21,7 +21,7 @@ t2m           = T2m_Feb2000_Dec2004.nc, T2m_Jan2005_Dec2008.nc, T2m_Jan2009_Dec2
 
 # MODIS datasets #######################################################
 # dset   =  dnum:short_name, dnum:short_name, dnum:short_name          #
-MCD43A2  =     0:BSA_quality,   1:BSA_full_quality
+MCD43A2  =     0:BSA_quality,   1:BSA_full_quality # 1:BDA_snow_brdf_quality,3:BSA_ancill_quality, 4: BSA_band_quality
 MCD43A3  =     7:BSA_vis,       8:BSA_nir,       9:BSA_sw
 MOD10A2  =     0:mse,           1:dsc
 
