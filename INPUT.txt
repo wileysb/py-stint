@@ -1,14 +1,14 @@
 # PROJECT INFO #########################################################
-start_year      = 04   # starts 1 January, 20YY (late Feb if '00)
-end_year        = 09   # runs through 31 December, 20YY
+start_year      = 06   # starts 1 January, 20YY (late Feb if '00)
+end_year        = 07   # runs through 31 December, 20YY
 NODATA          = -999 # output nodata value
 
 
 # PATHS  ###############################################################
-aoi           = /data/NTNU/Data/Landcover/clc06/clc06_ika_0711_K3.shp
+aoi           = /data/NTNU/Data/Landcover/clc06/valtst_clc06.shp
 modis_tile_fn = /data/NTNU/py-stint/Tools/Data/modis_sinusoidal_grid_world.shp
-prj_name      = clcdev
-prj_directory = /data/NTNU/clcdev/
+prj_name      = valtst
+prj_directory = /data/NTNU/valtst/
 modis_dir     = /media/Elements/MODIS_ARCHIVE/
 era_dir       = /media/Elements/SCANDINAVIA/ERA/
 
@@ -20,8 +20,8 @@ t2m           = T2m_Feb2000_Dec2004.nc, T2m_Jan2005_Dec2008.nc, T2m_Jan2009_Dec2
 
 
 # MODIS datasets #######################################################
-# dset   =  dnum:short_name, dnum:short_name, dnum:short_name          #
-MCD43A2  =     0:BSA_quality,   1:BSA_full_quality # 1:BDA_snow_brdf_quality,3:BSA_ancill_quality, 4: BSA_band_quality
+# dset   =  dnum:short_name,  dnum:short_name,  dnum:short_name          #
+MCD43A2  =     0:BSA_quality,   2:BSA_ancill,    3:BSA_band
 MCD43A3  =     7:BSA_vis,       8:BSA_nir,       9:BSA_sw
 MOD10A2  =     0:mse,           1:dsc
 
