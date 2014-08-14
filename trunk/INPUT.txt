@@ -6,7 +6,7 @@ NODATA          = -999 # output nodata value
 
 # PATHS  ###############################################################
 aoi           = /data/NTNU/Data/Landcover/clc06/valtst_clc06.shp
-modis_tile_fn = /data/NTNU/py-stint/Tools/Data/modis_sinusoidal_grid_world.shp
+modis_tile_fn = /data/NTNU/py-stint/Tools/Data/MODIS_tiles.shp
 prj_name      = valtst
 prj_directory = /data/NTNU/valtst/
 modis_dir     = /media/Elements/MODIS_ARCHIVE/
