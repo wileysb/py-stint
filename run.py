@@ -30,6 +30,7 @@ from Tools.ERA_librarian import Val_era
 from Tools.MODIS_subsetter import Mod2hdf
 from Tools.ERA_subsetter import Era2hdf
 from Tools.STINT_outputs import Veclc2csv
+from Tools.pyModis_downmodis import downModis
 
 # Load INPUT variables to 'project' dictionary
 project = Parse_input('INPUT.txt')
@@ -93,10 +94,16 @@ def Proceed(): # not coded yet!
     TODO = 'code this'
 
 
-def Get_modis(tiles,dates,modis_dir,mflaws):
-    TODO = 'Download MODIS dsets'
-    TODO+='Try to get Missing datasets'
-    TODO+='Delete corrupt datasets, try to replace them'
+def Get_modis(tiles,dates,modis_dir,dset='MCD32A2'):
+    dest_dir = os.path.join(modis_dir,dset)
+    dataset  = dset+'.005'
+    lday = dates[-1]  # last date in range, datetime
+    sday = dates[0]   # first date in range, datetime
+    dm = downModis(dest_dir,product=dataset,
+                   today=lday,enddate=sday,delta=None)
+    dm.tiles = tiles
+    dm.connect()
+    dm.downloadsAllDay(clean=True)
     
 
 def Run_stage(stage_num):
