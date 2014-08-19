@@ -31,6 +31,7 @@ except:
     import urllib2
 from HTMLParser import HTMLParser
 import re
+import datetime
 
 try:
     import osgeo.gdal as gdal
@@ -130,8 +131,8 @@ class downModis:
                 user="anonymous",
                 url="http://e4ftl01.cr.usgs.gov",
                 tiles=None,
-                path="MOLT",
-                product="MOD11A1.005",
+                path="MOTA",
+                product="MCD43A2.005", # MCD43A3.005
                 today=None,
                 enddate=None,
                 delta=10,
@@ -158,7 +159,7 @@ path = the directory where the data that you want to download are
 stored on the FTP server
 
 product = the code of product to download, the code should be
-idential to the one of the url
+identical to the one of the url
 
 tiles = a list of tiles to be downloaded, None == all tiles
 
@@ -349,7 +350,7 @@ before failing
         if self.today == None:
             # set today variable to today
             self.today = date.today()
-        else:
+        elif type(self.today) != datetime.date:
             # set today variable to data pass from user
             self.today = str2date(self.today)
             # set enday variable to data
