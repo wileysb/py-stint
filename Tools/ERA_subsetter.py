@@ -45,6 +45,7 @@ def Start_era_hdf( project, hdfp):
     print 'Creating',hdfp['sds'],hdfp['h5f']
     src_nc = Build_src_nc( project, hdfp)
     missing_val  = src_nc[0].variables[hdfp['sds']].missing_value
+    ncdtype = src_nc[0].variables[hdfp['sds']].data.dtype
     nclon   = src_nc[0].variables['longitude'][:]
     nclat   = src_nc[0].variables['latitude'][:]
 
@@ -60,8 +61,9 @@ def Start_era_hdf( project, hdfp):
 
     with h5py.File(hdfp['h5f'],"w") as hdf:
         dshape=(len(hdfp['hdtime']),len(hdlat),len(hdlon))
-        arr_out = hdf.create_dataset(hdfp['sds'],dshape,
-                      dtype='int16',chunks=True,compression='lzf')
+        #arr_out = hdf.create_dataset(hdfp['sds'],dshape,dtype='int16',chunks=True,compression='lzf')
+        arr_out = hdf.create_dataset(hdfp['sds'],dshape,dtype=ncdtype,chunks=True,compression='lzf')
+        arr_out[:] = missing_val
         arr_out.attrs['scale_factor'] = src_nc[0].variables[hdfp['sds']].scale_factor
         arr_out.attrs['add_offset']   = src_nc[0].variables[hdfp['sds']].add_offset
         arr_out.attrs['units']        = src_nc[0].variables[hdfp['sds']].units

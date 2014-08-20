@@ -1,5 +1,6 @@
-i) Check type management - do quality, BSA, and ERA keep
-     the right data types from source to csv?
+i) Rewrite MODIS_subsetter.Get_modis_md:
+   just grab first file in directory,
+   rather than requiring modis_day
 ii) add progress % to csv output 
 
 1) Implement raslc2csv

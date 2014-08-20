@@ -82,7 +82,8 @@ def Get_modis_md(modis_dir, dset,dnum,modis_day,mtile):
     ras      = gdal.Open(src_fn)
     dname    = ras.GetSubDatasets()[dnum][0] # desired subdataset
     del ras
-    ras = gdal.Open(dname)
+    ras  = gdal.Open(dname)
+    out['dtype'] = ras.ReadAsArray().dtype
     gt    = ras.GetGeoTransform()
     rasmd = ras.GetMetadata_Dict()
     del ras
@@ -221,8 +222,10 @@ def Mk_hdf( project, hdfp, x_var, y_var, modis_md ):
     
     with h5py.File(hdfp['h5f'],"w") as hdf:
         dshape=(len(hdfp['time_var']),len(y_var),len(x_var))
-        arr_out = hdf.create_dataset(hdfp['sds'],dshape,dtype='int16', \
+        #arr_out = hdf.create_dataset(hdfp['sds'],dshape,dtype='int16', \
+        arr_out = hdf.create_dataset(hdfp['sds'],dshape,dtype=modis_md['dtype'], \
           chunks=True,compression='lzf') #compression='gzip' or 'szip'
+        arr_out[:] = modis_md['fill_value']
         x_out = hdf.create_dataset("x",data=x_var)
         y_out = hdf.create_dataset("y",data=y_var)
         t_out = hdf.create_dataset("time", (len(hdfp['time_var']),), \
