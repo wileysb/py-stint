@@ -44,6 +44,7 @@ basedate= dt.datetime(1900,01,01,00)
 def Start_era_hdf( project, hdfp):
     print 'Creating',hdfp['sds'],hdfp['h5f']
     src_nc = Build_src_nc( project, hdfp)
+    missing_val  = src_nc[0].variables[hdfp['sds']].missing_value
     nclon   = src_nc[0].variables['longitude'][:]
     nclat   = src_nc[0].variables['latitude'][:]
 
@@ -65,7 +66,7 @@ def Start_era_hdf( project, hdfp):
         arr_out.attrs['add_offset']   = src_nc[0].variables[hdfp['sds']].add_offset
         arr_out.attrs['units']        = src_nc[0].variables[hdfp['sds']].units
         arr_out.attrs['projection']   = wgs84_string
-        arr_out.attrs['fill_value']   = project['NODATA']
+        arr_out.attrs['fill_value']   = missing_val
         arr_out.attrs['dx']           = dlon
         arr_out.attrs['dy']           = dlat
         x_out = hdf.create_dataset("x",data=hdlon)
@@ -152,7 +153,6 @@ def ERA_to_mdays(project,dset,start_time,src_nc):
     nclat = nclat + 0.5*dlat
 
     x_s,x_e,y_s,y_e = Get_spatial_indexes(nclon,nclat,project['aoi'])
-    missing_val  = src_nc[0].variables[dset].missing_value
     # start_time assigned
     end_time   = start_time+16*24
     intervals = ID_intervals(start_time,end_time,src_nc)
@@ -166,18 +166,13 @@ def ERA_to_mdays(project,dset,start_time,src_nc):
                 fi = None
             
             data = src_nc[k].variables[dset][st:fi,y_s:y_e,x_s:x_e]
-            data = np.where(data==missing_val,np.nan,data) 
-            #data = np.where(data==missing_val-1,np.nan,data) 
             if era_vals:
                 era_series = np.concatenate([era_series,data],axis=0) 
             else:
                 era_series = data
                 era_vals = True
     if (era_series.shape[0]==16) or (era_series.shape[0]==64):
-        mean16day = np.mean(era_series,axis=0) 
-        mean16day = np.where( mean16day==np.nan,
-                              project['NODATA'],
-                              mean16day )
+        mean16day = np.mean(era_series,axis=0)
     else:
         print 'PROBLEMS WITH ERA SAMPLE!'
         mean16day = 'PROBLEMS!!'

@@ -117,7 +117,7 @@ def Get_modis_tile( project, hdfp, modis_day, mtile ):
     fill_value   = float(rasmd['_FillValue'])
 
     a = ras.ReadAsArray()
-    a = np.where(a==fill_value,hdfp['NODATA'],a)
+    #a = np.where(a==fill_value,hdfp['NODATA'],a)
 
     # define x and y coords for the array:
     gt          = ras.GetGeoTransform()
@@ -158,7 +158,7 @@ def Build_modis_mosaic( project, hdfp, modis_day):
     y_sub = y_var[y_s:y_e]
 
     a = np.empty((len(y_sub),len(x_sub))) # or reverse x,y order?
-    a[:] = hdfp['NODATA']
+    a[:] = hdfp['fill_value']
     for mtile in hdfp['modis_tiles']:
         try:
             a_,x_,y_ = Get_modis_tile( project, hdfp, modis_day, mtile )
@@ -237,7 +237,7 @@ def Mk_hdf( project, hdfp, x_var, y_var, modis_md ):
         arr_out.attrs.create('projection',sin_prj)
         arr_out.attrs.create('scale_factor',modis_md['scale_factor'])
         arr_out.attrs.create('add_offset',modis_md['add_offset'])
-        arr_out.attrs.create('fill_value',project['NODATA'])
+        arr_out.attrs.create('fill_value',modis_md['fill_value'])
         arr_out.attrs.create('dx',modis_md['dx'])
         arr_out.attrs.create('dy',modis_md['dy'])        
 
@@ -369,7 +369,7 @@ def Mod2hdf( project, dset, dnum ):
     hdfp['modis_dir']   = project['modis_dir']
     hdfp['modis_days']  = project['modis_days']
     hdfp['modis_tiles'] = project['modis_tiles']
-    hdfp['NODATA']      = project['NODATA']
+    hdfp['NODATA']      = np.nan
     hdfp['years'] = [int(str(modis_days[i])[:4]) for i in \
                        range(len(modis_days))]
     hdfp['ydays'] = [int(str(modis_days[i])[4:]) for i in \
@@ -384,6 +384,9 @@ def Mod2hdf( project, dset, dnum ):
 
     hdfp['h5f'] = os.path.join(project['hdf_dir'],project['prj_name']+ \
                                '_'+hdfp['sds']+'.hdf5')
+
+    modis_md = Get_modis_md(hdfp['modis_dir'],dset,dnum,hdfp['modis_days'][0],hdfp['modis_tiles'][0])
+    hdfp['fill_value'] = modis_md['fill_value']
     if not os.path.isfile(hdfp['h5f']):
         Start_modis_hdf(project, hdfp)
     

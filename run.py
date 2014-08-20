@@ -22,6 +22,7 @@
 ##################################################################
 
 import sys,os
+import numpy as np
 import Tools.SPATIAL_tools
 from Tools.ORG_tools import Parse_input, Check_input,Get_modis_days
 from Tools.MODIS_aoi import Parse_extents, Check_mod_tiles
@@ -73,6 +74,7 @@ if not os.path.isdir(csv_dir):
     os.mkdir(csv_dir)
 
 # Expand 'project' dictionary
+project['NODATA']  = np.nan
 project['aoi']     = Parse_extents(project['lc_src'])
 project['hdf_dir'] = hdf_dir
 project['shp_dir'] = shp_dir
@@ -227,6 +229,10 @@ def Run_stage(stage_num):
     elif stage_num == 7:
         # Export era, modis, and intersected landcover to csv!
         Veclc2csv(project)
+
+    elif stage_num > 7:
+        print "OK, OK, you're done already!"
+        print "only 7 stages..."
 
 
 if __name__ == '__main__':
