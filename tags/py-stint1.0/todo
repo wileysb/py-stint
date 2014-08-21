@@ -1,0 +1,12 @@
+i) Rewrite MODIS_subsetter.Get_modis_md:
+   just grab first file in directory,
+   rather than requiring modis_day
+ii) add progress % to csv output 
+
+1) Implement raslc2csv
+2) Explore faster Land2csv through indexing dbf attributes
+3) Implement MODIS archiving functions, and archive repair
+4) hdf5 viewer for visualizing hdf raster timeseries
+4a) Start by debugging hdf5_to_tif
+4b) Then, maybe more advanced GUI viewer ?
+ 
