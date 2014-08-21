@@ -38,15 +38,30 @@ def _cmdhelp():
 
     Stages
     -------
-    These are the stages in the py-stint workfl
-    +-------+----------------------------+-----------------+-----------------+
-    |Stage  | Summary                    | Requires        | Produces        |
-    +=======+============================+=================+=================+
-    | 1     | Parse input, check archives|                 |                 |
-    +-------+----------------------------+-----------------+-----------------+
-    | 2     | src -> hdf5                |                 | datasets.hdf5   |
-    +-------+----------------------------+-----------------+-----------------+
-
+    These are the stages in the py-stint workflow
+    +------+---------------------------+-----------------+-------------------+
+    |Stage | Summary                   | Requires        | Produces          |
+    +======+===========================+=================+===================+
+    |      |                          | MODIS archive,  |                    |
+    |      |                          | ERA archive     |                    |
+    | 1    |Parse input,              | INPUT.txt,      |  directories       |
+    |      |check archives            | aoi/landcover,  |                    |
+    |      |                          | MODIS tiles shp |                    |
+    +------+--------------------------+-----------------+--------------------+
+    | 2    | src -> hdf5              | As stage 1      | datasets.hdf5      |
+    +------+--------------------------+-----------------+--------------------+
+    | 3    | hdf5 -> shp              | ERA and MODIS   | ERA and MODIS shp  |
+    |      |                          | hdf5 array files| native projections |
+    +------+---------------------------+-----------------+-------------------+
+    | 4    | shp: reproject+index     | ERA and MODIS shp | ERA and MODIS shp|
+    |      |                          | native projections| aoi/landcover prj|
+    +------+--------------------------+-----------------+-----------------+
+    | 5    | shp: lc + climate -> lcc |                 |                 |
+    +------+----------------------------+-----------------+-----------------+
+    | 6    |  shp: lcc + modis -> lcm |                 |                 |
+    +------+----------------------------+-----------------+-----------------+
+    | 7    |  Output hdf5+lcm -> CSV  | lcm.shp, *.hdf5 | datasets.csv    |
+    +------+----------------------------+-----------------+-----------------+
 
 
 
