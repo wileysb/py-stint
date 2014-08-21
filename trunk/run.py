@@ -21,6 +21,52 @@
 #
 ##################################################################
 
+def _cmdhelp():
+    '''Documentation for py-stint run.py command line options.
+
+    Usage:
+    $ python run.py -help
+    prints this documentation
+
+    $ python run.py
+    no arguments: executes stages 1-7 in order
+
+    $ python run.py <integer>
+    Integer from 1 to 7
+    Executes specified stage independently
+
+
+    Stages
+    +-------+----------------------------+-----------------+-----------------+
+    Stage   Summary                      Requires          Produces
+    +-------+----------------------------+-----------------+-----------------+
+      1      Parse input, check archives
+    +-------+----------------------------+-----------------+-----------------+
+      2      src -> hdf5
+
+
+
+
+
+      Stage 1
+        Loads project parameters from INPUT.txt
+        Loads landcover/AOI shapefile
+        Checks MODIS archive for corrupt or missing files
+        within in the region, timeframe, and datasets specified
+        Checks ERA archive for gaps in timeseries
+        within the timeframe and datasets specified
+
+      Stage 2
+        Constructs array file (hdf5) with dimensions [d,y,x] for each
+        MODIS and ERA dataset
+          x and y are spatial coordinates in the dataset's native projection
+          d represents index number of modis interval
+          d=0 is the first modis interval, eg 2000049, in the project timeframe
+        hdf5 arrays are subset to the project timeframe and minimum
+          rectangle necessary to completely contain the landcover region (AOI)
+    '''
+    pass
+
 import sys,os
 import numpy as np
 import Tools.SPATIAL_tools
