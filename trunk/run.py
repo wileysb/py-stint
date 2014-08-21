@@ -37,13 +37,15 @@ def _cmdhelp():
 
 
     Stages
+    -------
+    These are the stages in the py-stint workfl
     +-------+----------------------------+-----------------+-----------------+
-    Stage   Summary                      Requires          Produces
+    |Stage  | Summary                    | Requires        | Produces        |
+    +=======+============================+=================+=================+
+    | 1     | Parse input, check archives|                 |                 |
     +-------+----------------------------+-----------------+-----------------+
-      1      Parse input, check archives
+    | 2     | src -> hdf5                |                 | datasets.hdf5   |
     +-------+----------------------------+-----------------+-----------------+
-      2      src -> hdf5
-
 
 
 
