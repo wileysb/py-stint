@@ -21,19 +21,15 @@
 #
 ##################################################################
 
-def _cmdhelp():
-    '''Documentation for py-stint run.py command line options.
+'''Commandline control for Spatial/Temporal Intersection Toolset
 
     Usage:
-    $ python run.py -help
-    prints this documentation
+    python run.py --help
+      prints this documentation
 
-    $ python run.py
-    no arguments: executes stages 1-7 in order
-
-    $ python run.py <integer>
-    Integer from 1 to 7
-    Executes specified stage independently
+    python run.py <integer>
+      Integer from 1 to 7
+      Executes specified stage independently
 
 
     Stages
@@ -44,8 +40,8 @@ def _cmdhelp():
     +======+=====================+======================+====================+
     |      |                     | MODIS archive,       |                    |
     |      |                     | ERA archive          |                    |
-    | 1    |Parse input,         | INPUT.txt,           |  directories       |
-    |      |check archives       | aoi/landcover,       |                    |
+    | 1    | Parse input,        | INPUT.txt,           | directories        |
+    |      | check archives      | aoi/landcover,       |                    |
     |      |                     | MODIS tiles shp      |                    |
     +------+---------------------+----------------------+--------------------+
     | 2    | src -> hdf5         | As stage 1           | datasets.hdf5      |
@@ -56,10 +52,10 @@ def _cmdhelp():
     | 4    | reproject+index     | ERA & MODIS shp:     | ERA & MODIS shp+idx|
     |      | ERA & MODIS shp     | -native projections  | -aoi/landcover prj |
     +------+---------------------+----------------------+--------------------+
-    | 5    | lc + climate -> lcc |landcover/aoi shp     |lcc.shp             |
-    |      |                     |era-reproj shp+idx    |                    |
+    | 5    | lc + climate -> lcc | landcover/aoi shp    | lcc.shp            |
+    |      |                     | era-reproj shp+idx   |                    |
     +------+---------------------+----------------------+--------------------+
-    | 6    | lcc + modis -> lcm  | lcc.shp,             |lcm.shp             |
+    | 6    | lcc + modis -> lcm  | lcc.shp,             | lcm.shp            |
     |      |                     | modis-reproj shp+idx |                    |
     +------+---------------------+----------------------+--------------------+
     | 7    |  Output hdf5+lcm    | lcm.shp,             | datasets.csv       |
@@ -119,7 +115,6 @@ def _cmdhelp():
           regions made up of 50 MODIS cells
 
     '''
-    pass
 
 import sys,os
 import numpy as np
@@ -133,81 +128,86 @@ from Tools.ERA_subsetter import Era2hdf
 from Tools.STINT_outputs import Veclc2csv
 from Tools.pyModis_downmodis import downModis
 
-# Load INPUT variables to 'project' dictionary
-project = Parse_input('INPUT.txt')
-
-# Check for errors in input
-err = Check_input(project)
-if len(err):
-    print 'FIX ERRORS IN INPUT.txt:'
-    for problem in err:
-        print problem
-    sys.exit( 1 )
-
-### DEFINE AND RESOLVE HDF DIRECTORY
-processing_dir = os.path.join(project['prj_directory'],'Processing/')
-hdf_dir = os.path.join(processing_dir,'HDF/')
-if not os.path.isdir(processing_dir):
-    os.mkdir(processing_dir)
-
-if not os.path.isdir(hdf_dir):
-    os.mkdir(hdf_dir)
-
-## DEFINE AND RESOLVE SHP DIRECTORY
-shp_dir = os.path.join(processing_dir,'SHP/')
-if not os.path.isdir(shp_dir):
-    os.mkdir(shp_dir)
-
-## DEFINE AND RESOLVE TIF DIRECTORY
-tif_dir = os.path.join(processing_dir,'TIF/')
-if not os.path.isdir(tif_dir):
-    os.mkdir(tif_dir)
-
-## DEFINE AND RESOLVE OUTPUT DIRECTORY
-out_dir = os.path.join(project['prj_directory'],'Output/')
-if not os.path.isdir(out_dir):
-    os.mkdir(out_dir)
-
-## DEFINE AND RESOLVE CSV OUTPUT DIRECTORY
-csv_dir = os.path.join(out_dir,'CSV/')
-if not os.path.isdir(csv_dir):
-    os.mkdir(csv_dir)
-
-# Expand 'project' dictionary
-project['NODATA']  = np.nan
-project['aoi']     = Parse_extents(project['lc_src'])
-project['hdf_dir'] = hdf_dir
-project['shp_dir'] = shp_dir
-project['tif_dir'] = tif_dir
-project['out_dir'] = out_dir
-project['csv_dir'] = csv_dir
-project['modis_tiles'] = Check_mod_tiles(project['modis_tile_fn'],**project['aoi'])
-project['modis_days']  = Get_modis_days( project['start_year'],
-                                         project['end_year'])
-
-def Proceed(): # not coded yet!
-    #num_stages = 7
-    #last_stage = Ld_stage_file() # Read stage file
-    # Check products up through last_stage
-    # Clean up anything beyond last_stage and check directory structure
-    #start_stage = last_stage
-    #for stage_num in range(start_stage,num_stages+1):
-    #    Run_stage(stage_num)
-    TODO = 'code this'
+def prj_mkdir(dir_path):
+    try:
+        os.mkdir(dir_path)
+    except:
+        print '[ERROR] Problem creating ',dir_path
+        sys.exit(1)
 
 
-def Get_modis(tiles,dates,modis_dir,dset='MCD32A2'):
-    dest_dir = os.path.join(modis_dir,dset)
-    dataset  = dset+'.005'
-    lday = dates[-1]  # last date in range, datetime
-    sday = dates[0]   # first date in range, datetime
-    dm = downModis(dest_dir,product=dataset,
-                   today=lday,enddate=sday,delta=None)
-    dm.tiles = tiles
-    dm.connect()
-    dm.downloadsAllDay(clean=True)
-    
+def Load_params(input_fn):
+    try:
+        project = Parse_input('INPUT.txt')
+    except:
+        print '[ERROR] Problem loading parameters from INPUT.txt'
+        sys.exit(1)
 
+    # Check for errors in input
+    err = Check_input(project)
+    if len(err):
+        print 'FIX ERRORS IN INPUT.txt:'
+        for problem in err:
+            print problem
+        sys.exit( 1 )
+
+    ### DEFINE AND RESOLVE HDF DIRECTORY
+    processing_dir = os.path.join(project['prj_directory'],'Processing/')
+    hdf_dir = os.path.join(processing_dir,'HDF/')
+    if not os.path.isdir(processing_dir):
+        os.mkdir(processing_dir)
+
+    if not os.path.isdir(hdf_dir):
+        prj_mkdir(hdf_dir)
+
+    ## DEFINE AND RESOLVE SHP DIRECTORY
+    shp_dir = os.path.join(processing_dir,'SHP/')
+    if not os.path.isdir(shp_dir):
+        prj_mkdir(shp_dir)
+
+    ## DEFINE AND RESOLVE TIF DIRECTORY
+    tif_dir = os.path.join(processing_dir,'TIF/')
+    if not os.path.isdir(tif_dir):
+        prj_mkdir(tif_dir)
+
+    ## DEFINE AND RESOLVE OUTPUT DIRECTORY
+    out_dir = os.path.join(project['prj_directory'],'Output/')
+    if not os.path.isdir(out_dir):
+        prj_mkdir(out_dir)
+
+    ## DEFINE AND RESOLVE CSV OUTPUT DIRECTORY
+    csv_dir = os.path.join(out_dir,'CSV/')
+    if not os.path.isdir(csv_dir):
+        prj_mkdir(csv_dir)
+
+    # Expand 'project' dictionary
+    project['NODATA']  = np.nan
+    project['hdf_dir'] = hdf_dir
+    project['shp_dir'] = shp_dir
+    project['tif_dir'] = tif_dir
+    project['out_dir'] = out_dir
+    project['csv_dir'] = csv_dir
+
+    try:
+        project['aoi']     = Parse_extents(project['lc_src'])
+    except:
+        print '[ERROR] Problems loading bounding box for AOI'
+        print project['lc_src']
+        sys.exit(1)
+
+    try:
+        project['modis_tiles'] = Check_mod_tiles(project['modis_tile_fn'],**project['aoi'])
+    except:
+        print '[ERROR] Problems identifying MODIS tiles intersecting project AOI'
+
+    try:
+        project['modis_days']  = Get_modis_days( project['start_year'],
+                                                 project['end_year'])
+    except:
+        print '[ERROR] Problems deriving MODIS interval days from specified timeframe'
+
+
+# Main workflow function
 def Run_stage(stage_num):
     if stage_num == 1:
         # Validate MODIS datasets for ID'd tiles
@@ -335,26 +335,43 @@ def Run_stage(stage_num):
         print "only 7 stages..."
 
 
+# Some functions for parsing commandline arguments
+def is_stagenum(s,numstages=7):
+    try:
+        argnum = int(s)
+        if argnum in range(1,numstages+1):
+            return True
+        else:
+            return False
+    except ValueError:
+        return False
+
+
+def bad_arg_exit():
+    print "[ ERROR ] bad arguments"
+    print "to run a specified stage, try $ python run.py <stage_num>"
+    print "for documentation, type $ python run.py --help"
+    sys.exit( 1 )
+
+
+
 if __name__ == '__main__':
     '''
     CLI arguments: 
-    <none>: proceed from last completed stage
+    --help: print help __doc__
     1 : run stage 1
     2 : run stage 2
     3 ...
     '''
-    if len( sys.argv ) > 2: # first argument is 'run.py'
-        print "[ ERROR ] bad arguments"
-        print "$ python run.py to proceed automatically; "
-        print "eg $ python run.py <stage_num> to run specified stage"
-        sys.exit( 1 )
-    
-    if len( sys.argv ) == 1:
-        Proceed()
-    elif len( sys.argv ) == 2:
-        try:
+
+    if len(sys.argv)==2:
+        if sys.argv[1] in ['-h','--help']:
+            print __doc__
+        elif is_stagenum(sys.argv[1]):
+            project = Load_params('INPUT.txt')
             stage_num = int(sys.argv[1])
             Run_stage(stage_num)
-        except:
-            # Encourage the user to provide an integer
-            print '[ ERROR ] executing run %s; is it a normal integer?' % sys.argv[1]
+        else:
+            bad_arg_exit()
+    else:
+        bad_arg_exit()
