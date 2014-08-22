@@ -4,10 +4,10 @@ end_year        = 07   # runs through 31 December, 20YY
 
 
 # PATHS  ###############################################################
-aoi           = /media/wiley/Elements/Landcover/clc06/clc06_ika_0711_K3.shp
+aoi           = /media/wiley/Elements/Landcover/clc06/valtst_clc06.shp
 modis_tile_fn = /home/wiley/wrk/py-stint/Tools/Data/MODIS_tiles.shp
-prj_name      = k3
-prj_directory = /home/wiley/wrk/STINT/suomi_k3/
+prj_name      = valtst
+prj_directory = /home/wiley/wrk/STINT/valtst/
 modis_dir     = /media/wiley/Elements/MODIS_ARCHIVE/
 era_dir       = /media/wiley/Elements/CLIMATE/ERA/
 
