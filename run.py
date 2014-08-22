@@ -39,29 +39,32 @@ def _cmdhelp():
     Stages
     -------
     These are the stages in the py-stint workflow
-    +------+---------------------------+-----------------+-------------------+
-    |Stage | Summary                   | Requires        | Produces          |
-    +======+===========================+=================+===================+
-    |      |                          | MODIS archive,  |                    |
-    |      |                          | ERA archive     |                    |
-    | 1    |Parse input,              | INPUT.txt,      |  directories       |
-    |      |check archives            | aoi/landcover,  |                    |
-    |      |                          | MODIS tiles shp |                    |
-    +------+--------------------------+-----------------+--------------------+
-    | 2    | src -> hdf5              | As stage 1      | datasets.hdf5      |
-    +------+--------------------------+-----------------+--------------------+
-    | 3    | hdf5 -> shp              | ERA and MODIS   | ERA and MODIS shp  |
-    |      |                          | hdf5 array files| native projections |
-    +------+---------------------------+-----------------+-------------------+
-    | 4    | shp: reproject+index     | ERA and MODIS shp | ERA and MODIS shp|
-    |      |                          | native projections| aoi/landcover prj|
-    +------+--------------------------+-----------------+-----------------+
-    | 5    | shp: lc + climate -> lcc |                 |                 |
-    +------+----------------------------+-----------------+-----------------+
-    | 6    |  shp: lcc + modis -> lcm |                 |                 |
-    +------+----------------------------+-----------------+-----------------+
-    | 7    |  Output hdf5+lcm -> CSV  | lcm.shp, *.hdf5 | datasets.csv    |
-    +------+----------------------------+-----------------+-----------------+
+    +------+---------------------+----------------------+--------------------+
+    |Stage | Summary             | Requires             | Produces           |
+    +======+=====================+======================+====================+
+    |      |                     | MODIS archive,       |                    |
+    |      |                     | ERA archive          |                    |
+    | 1    |Parse input,         | INPUT.txt,           |  directories       |
+    |      |check archives       | aoi/landcover,       |                    |
+    |      |                     | MODIS tiles shp      |                    |
+    +------+---------------------+----------------------+--------------------+
+    | 2    | src -> hdf5         | As stage 1           | datasets.hdf5      |
+    +------+---------------------+----------------------+--------------------+
+    | 3    | hdf5 -> shp         | ERA & MODIS          | ERA & MODIS shp    |
+    |      |                     | hdf5 array files     | -native projections|
+    +------+---------------------+----------------------+--------------------+
+    | 4    | reproject+index     | ERA & MODIS shp:     | ERA & MODIS shp+idx|
+    |      | ERA & MODIS shp     | -native projections  | -aoi/landcover prj |
+    +------+---------------------+----------------------+--------------------+
+    | 5    | lc + climate -> lcc |landcover/aoi shp     |lcc.shp             |
+    |      |                     |era-reproj shp+idx    |                    |
+    +------+---------------------+----------------------+--------------------+
+    | 6    | lcc + modis -> lcm  | lcc.shp,             |lcm.shp             |
+    |      |                     | modis-reproj shp+idx |                    |
+    +------+---------------------+----------------------+--------------------+
+    | 7    |  Output hdf5+lcm    | lcm.shp,             | datasets.csv       |
+    |      |  -> CSV             | datasets.hdf5        |                    |
+    +------+---------------------+----------------------+--------------------+
 
 
 
@@ -69,18 +72,52 @@ def _cmdhelp():
         Loads project parameters from INPUT.txt
         Loads landcover/AOI shapefile
         Checks MODIS archive for corrupt or missing files
-        within in the region, timeframe, and datasets specified
+          within in the region, timeframe, and datasets specified
         Checks ERA archive for gaps in timeseries
-        within the timeframe and datasets specified
+          within the timeframe and datasets specified
 
       Stage 2
         Constructs array file (hdf5) with dimensions [d,y,x] for each
         MODIS and ERA dataset
-          x and y are spatial coordinates in the dataset's native projection
-          d represents index number of modis interval
-          d=0 is the first modis interval, eg 2000049, in the project timeframe
-        hdf5 arrays are subset to the project timeframe and minimum
+        * x and y are spatial coordinates in dataset's native projection
+        * d represents index number of modis interval
+        * d=0 is the first modis interval in the timeframe, eg 2000049
+        * hdf5 arrays are subset to the project timeframe and minimum
           rectangle necessary to completely contain the landcover region (AOI)
+
+      Stage 3
+        Produce MODIS & ERA shapefiles from hdf5 subset arrays
+        * Shapefiles are in native projection (Sinusoidal & WGS84)
+        * consist of a polygon grid, each raster cell represented by
+          rectangle with attributes id,x_ctr,y_ctr,x_ind,y_ind
+
+      Stage 4
+        Reproject MODIS & ERA shapefiles to landcover(aoi) projection
+        Construct spatial rtree index (idx) for each
+
+      Stage 5
+        Intersect reprojected climate (ERA) + landcover (aoi) shapefiles
+        to produce lcc.shp
+          * lcc = land cover climate
+          * attributes specified by lc_ in INPUT are preserved from aoi
+          * era idx to speed up feature matching
+
+      Stage 6
+        Intersect lcc + reprojected modis shapefiles to produce lcm.shp
+        * lcm = landcover climate modis
+        * modis idx to speed up feature matching
+        * lcm.shp is effectively the central product of this workflow, linking
+          breaking each landcover feature into polygons wholly within and
+          linked to individual MODIS and ERA cells
+
+      Stage 7
+        lcm.shp used as guide to export modis and era timeseries to CSV
+        * lc.csv: each row is a landcover feature with MODIS and ERA links
+        * MODIS and ERA dataset csvs: each row is a full timeseries for an
+          individual cell
+        * datasets with more than 20k landcover features are broken up into
+          regions made up of 50 MODIS cells
+
     '''
     pass
 
