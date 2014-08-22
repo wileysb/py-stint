@@ -206,12 +206,23 @@ def Load_params(input_fn):
     except:
         print '[ERROR] Problems deriving MODIS interval days from specified timeframe'
 
+    return project
+
 
 # Main workflow function
 def Run_stage(stage_num):
     if stage_num == 1:
         # Validate MODIS datasets for ID'd tiles
         mflaws = Gather_mod_flaws(project)
+        flawnum={'missing':0,'corrupt':0,'partial':0}
+        for mtile in mflaws.keys():
+            for mprod in mflaws[mtile].keys():
+                for flaw in flawnum.keys():
+                    flawnum[flaw] += len(mflaws[mtile][mprod][flaw])
+
+        for flaw in flawnum.keys():
+            if flawnum[flaw]>0:
+                print flawnum[flaw],flaw,'files in MODIS archive'
           # Write modis flaws to file so they can be used to fix archive
           # report flaw summary
         # Validate ERA extents, date range, and file overlap
@@ -352,7 +363,6 @@ def bad_arg_exit():
     print "to run a specified stage, try $ python run.py <stage_num>"
     print "for documentation, type $ python run.py --help"
     sys.exit( 1 )
-
 
 
 if __name__ == '__main__':
