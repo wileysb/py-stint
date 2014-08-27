@@ -1,7 +1,8 @@
 i) Rewrite MODIS_subsetter.Get_modis_md:
    just grab first file in directory,
    rather than requiring modis_day
-ii) add progress % to csv output 
+ii) add progress % to csv output
+iii) implement $python run.py test >
 
 1) Implement raslc2csv
 2) Explore faster Land2csv through indexing dbf attributes
