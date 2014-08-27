@@ -48,7 +48,7 @@ def Check_mod_tiles(xmin,ymin,xmax,ymax,dx,dy,srs,modis_tile_fn=None):
     :return: (list) e.g. ['h19v02','h19v03',...]
     '''
     if modis_tile_fn==None:
-        tools_dir = os.path.split(__file__)
+        tools_dir = os.path.split(__file__)[0]
         modis_tile_fn = os.path.join(tools_dir,'Data','MODIS_tiles.shp')
 
 
@@ -79,7 +79,7 @@ def Check_mod_tiles(xmin,ymin,xmax,ymax,dx,dy,srs,modis_tile_fn=None):
     return tiles_in_aoi
 
 
-def args_are_floats(*args):
+def Args_are_floats(*args):
     '''Return True if all args can be converted to float.
     Else, return False.
     '''
@@ -91,7 +91,7 @@ def args_are_floats(*args):
     return True
 
 
-def tst_bounds(xmin,ymin,xmax,ymax):
+def Valid_bounds(xmin,ymin,xmax,ymax):
     '''Return False unless xmax>xmin & ymax>ymin.'''
     if not float(xmax)>float(xmin):
         return False
@@ -120,23 +120,21 @@ if __name__ == '__main__':
         aoi = {}
         try:
             getsrs = osr.SpatialReference()
-            getsrs.ImportFromEPSG( sys.argv[5] )
+            getsrs.ImportFromEPSG( int(sys.argv[5]) )
             aoi['srs']  = getsrs
         except:
-            '[ERROR] EPSG not found: ',sys.argv[5]
+            print '[ERROR] EPSG not found: ',sys.argv[5]
             sys.exit(1)
-        #! exit with error if these are not int or float
-        #! and xmax>xmin, ymax>ymin:
-        if not args_are_floats(sys.argv[1:5]):
+        if not Args_are_floats(*sys.argv[1:5]):
             print '[ERROR] bounding box values are not all numbers'
             sys.exit(1)
-        if not tst_bounds(sys.argv[1:5]):
+        if not Valid_bounds(*sys.argv[1:5]):
             print '[ERROR] bounding box maximums should be greater than minimums'
             sys.exit(1)
-        aoi['xmin'] = sys.argv[1]
-        aoi['ymin'] = sys.argv[2]
-        aoi['xmax'] = sys.argv[3]
-        aoi['ymax'] = sys.argv[4]
+        aoi['xmin'] = float(sys.argv[1])
+        aoi['ymin'] = float(sys.argv[2])
+        aoi['xmax'] = float(sys.argv[3])
+        aoi['ymax'] = float(sys.argv[4])
         aoi['dx']   = 'user input'
         aoi['dy']   = 'user input'
 

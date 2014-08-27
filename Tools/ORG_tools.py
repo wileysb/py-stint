@@ -38,10 +38,13 @@ def Parse_input(fn):
     inp_params['modis'] = {}
     inp_params['era']   = {}
     inp_params['lc']    = {} # tif paths or shapefile fields
+    if not os.path.isfile(fn):
+        print '[ERROR] Could not find INPUT file:',fn
+        sys.exit(1)
     try:
         inp = open(fn,'r')
     except IOError:
-        print '[ERROR] Could not find INPUT file:',fn
+        print '[ERROR] Could not access INPUT file:',fn
         sys.exit(1)
     lines = inp.readlines()
 
@@ -91,15 +94,18 @@ def Parse_input(fn):
             
             else:
                 inp_params[k] = val
-        
     if inp_params['lc_type']=='tif_dir':
         # define lc_src:
         src_k  = inp_params['rlc_init'][3:]
         lc_fn = inp_params['lc'][src_k]
         inp_params['lc_src'] = lc_fn
-        
+
         # define spatial reference system:
-        lc = gdal.Open(lc_fn, gdalconst.GA_ReadOnly)
+        try:
+            lc = gdal.Open(lc_fn, gdalconst.GA_ReadOnly)
+        except:
+            print '[ERROR] Could not access file',lc_fn
+            sys.exit(1)
         src_projection = lc.GetProjectionRef()
         srs = osr.SpatialReference()
         srs.ImportFromWkt(src_projection)
@@ -107,14 +113,20 @@ def Parse_input(fn):
         del lc
     elif inp_params['lc_type']=='shp':
         lc_fn = inp_params['lc_src']
-        lc  = ogr.Open(lc_fn)
-        lyr = lc.GetLayer()
-        srs = lyr.GetSpatialRef()
-        inp_params['srs'] = srs
+        try:
+            lc  = ogr.Open(lc_fn)
+            lyr = lc.GetLayer()
+            srs = lyr.GetSpatialRef()
+            inp_params['srs'] = srs
+        except:
+            print '[ERROR] Could not access file',lc_fn
+            sys.exit(1)
+
+
         del lc
-    
+
     jnk = inp_params.pop('aoi')
-    
+
     return inp_params
 
 
