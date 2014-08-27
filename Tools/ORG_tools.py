@@ -21,19 +21,29 @@
 #  See the GNU General Public License for more details.
 #
 ##################################################################
-
-import os,ogr,osr,gdal,gdalconst
+'''Module containing file parsing and date transformation functions.'''
+import os,ogr,osr,gdal,gdalconst,sys
 import datetime as dt
 import numpy as np
 
 datestr_fmt = '%Y-%m-%d'
 
 def Parse_input(fn):
+    '''Parse INPUT.txt into project parameters dict.
+
+    :param fn: (str) path to INPUT.txt
+    :return: (dict) STINT project parameters
+    '''
+    err = []
     inp_params = {}
     inp_params['modis'] = {}
     inp_params['era']   = {}
     inp_params['lc']    = {} # tif paths or shapefile fields
-    inp = open(fn,'r')
+    try:
+        inp = open(fn,'r')
+    except IOError:
+        print '[ERROR] Could not find INPUT file:',fn
+        sys.exit(1)
     lines = inp.readlines()
 
     int_list = ['start_year','end_year','NODATA',
@@ -106,11 +116,17 @@ def Parse_input(fn):
     
     jnk = inp_params.pop('aoi')
     
-    
-    return inp_params
+    if len(err)>0:
+        return err
+    else:
+        return inp_params
 
 
 def Check_input(inp_params):
+    '''Verify that project parameters dict contains valid parameters.
+
+    Among other potential errors, checks if files and paths exist as given.
+    '''
     err = []
     
     # Collect project directories
@@ -192,6 +208,12 @@ def Check_input(inp_params):
 
 
 def Get_modis_days(start_year, end_year):
+    '''Returns list of MODIS start dates within STINT timeframe
+
+    :param start_year: (int) YYYY first year of STINT timeframe
+    :param end_year: (int) YYYY last year of STINT timeframe
+    :return: (list) Start dates of MODIS 8 day intervals, in YYYDDD format
+    '''
     modis_dates = []
     for yr in range(start_year, end_year+1):
         for day in range(1, 369, 8):
@@ -204,11 +226,22 @@ def Get_modis_days(start_year, end_year):
 
 
 def Yearday2datetime(yearday):
+    '''Convert YYYYDDD modis date to datetime object
+
+    :param yearday: YYYYDDD, modis interval start date
+    :return: datetime
+    '''
     ydate = dt.datetime.strptime(str(yearday), '%Y%j')
     return ydate
 
 
 def Yearday2hrnum(basedate, yearday):
+    '''Convert YYYYDDD modis date to hours since Epoch.
+
+    :param basedate: datetime object marking start of epoch
+    :param yearday: YYYYDDD modis date
+    :return:(np.int32) Hours between basedate and yearday
+    '''
     ydate = dt.datetime.strptime(str(yearday), '%Y%j')
     tdelta = ydate - basedate
     hrnum = tdelta.total_seconds()/3600
@@ -216,9 +249,11 @@ def Yearday2hrnum(basedate, yearday):
 
 
 def Daynum2date(daynum, basedatestr):
-    '''modis_start_date = Daynum2date(daynum, basedate)
-    dt.datetime.strptime(str(mday), '%Y%j').date()-
-      basedate).total_seconds()/86400.
+    '''Convert days-since-epoch integer into YYYY-mm-dd string.
+
+    :param daynum: (int) days since start of Epoch
+    :param basedatestr: (str) YYYY-mm-dd marking start of Epoch
+    :return:(str) YYYY-mm-dd
     '''
     basedate = dt.datetime.strptime(basedatestr, datestr_fmt)
     out = basedate + dt.timedelta(days=daynum)

@@ -21,14 +21,37 @@
 #  See the GNU General Public License for more details.
 #
 ##################################################################
+'''Module or CLI script for finding MODIS tiles intersecting a bounding box.
 
-import osr,ogr,sys
+Usage:
+$ python MODIS_aoi [raster|shp]
+ OR
+$ python MODIS_aoi <xmin> <ymin> <xmax> <ymax> <epsg_number>
+'''
+import osr,ogr,sys,os
 
 from SPATIAL_tools import Parse_extents,Mk_bbox
-# Use this tool to find modis tiles within a project's bounding box AOI
-# load bounding box - from args, from shp, or from rasterS
 
-def Check_mod_tiles(modis_tile_fn,xmin,ymin,xmax,ymax,dx,dy,srs):
+
+def Check_mod_tiles(xmin,ymin,xmax,ymax,dx,dy,srs,modis_tile_fn=None):
+    '''Returns list of MODIS tiles (strings, 'h__v__') intersecting bounding
+    box or raster/vector data source supplied.
+
+    :param xmin: (float or int) bounding box minimum x coordinate
+    :param ymin: (float or int) bounding box minimum y coordinate
+    :param xmax: (float or int) bounding box maximum x coordinate
+    :param ymax: (float or int) bounding box maximum y coordinate
+    :param dx: not used (dict unpacking placeholder)
+    :param dy: not used (dict unpacking placeholder)
+    :param srs: osr.SpatialReference().ImportFromEPSG('EPSG_num')
+    :param modis_tile_fn: (string) path to shapefile with modis tile boundaries
+    :return: (list) e.g. ['h19v02','h19v03',...]
+    '''
+    if modis_tile_fn==None:
+        tools_dir = os.path.split(__file__)
+        modis_tile_fn = os.path.join(tools_dir,'Data','MODIS_tiles.shp')
+
+
     mod_grid  = ogr.Open(modis_tile_fn)
     mod_layer = mod_grid.GetLayer()
     sin_srs   = mod_layer.GetSpatialRef()
@@ -54,7 +77,28 @@ def Check_mod_tiles(modis_tile_fn,xmin,ymin,xmax,ymax,dx,dy,srs):
             tiles_in_aoi.append(tile_str)
 
     return tiles_in_aoi
-    
+
+
+def args_are_floats(*args):
+    '''Return True if all args can be converted to float.
+    Else, return False.
+    '''
+    for arg in args:
+        try:
+            float(arg)
+        except ValueError:
+            return False
+    return True
+
+
+def tst_bounds(xmin,ymin,xmax,ymax):
+    '''Return False unless xmax>xmin & ymax>ymin.'''
+    if not float(xmax)>float(xmin):
+        return False
+    if not float(ymax)>float(ymin):
+        return False
+    return True
+
 
 if __name__ == '__main__':
     '''
@@ -64,23 +108,44 @@ if __name__ == '__main__':
     '''
     if len( sys.argv ) == 2:
         src_fn = sys.argv[1]
-        aoi = Parse_extents(src_fn)
+        if not os.path.isfile(src_fn):
+            print '[ERROR] File not found:',src_fn
+            sys.exit(1)
+        try:
+            aoi = Parse_extents(src_fn)
+        except:
+            print '[ERROR] Could not parse bounding box from file:',src_fn
+            sys.exit(1)
     elif len (sys.argv ) == 6:
         aoi = {}
-        getsrs = osr.SpatialReference()
-        getsrs.ImportFromEPSG( sys.argv[5] )
-        aoi['srs']  = getsrs
+        try:
+            getsrs = osr.SpatialReference()
+            getsrs.ImportFromEPSG( sys.argv[5] )
+            aoi['srs']  = getsrs
+        except:
+            '[ERROR] EPSG not found: ',sys.argv[5]
+            sys.exit(1)
         #! exit with error if these are not int or float
         #! and xmax>xmin, ymax>ymin:
+        if not args_are_floats(sys.argv[1:5]):
+            print '[ERROR] bounding box values are not all numbers'
+            sys.exit(1)
+        if not tst_bounds(sys.argv[1:5]):
+            print '[ERROR] bounding box maximums should be greater than minimums'
+            sys.exit(1)
         aoi['xmin'] = sys.argv[1]
         aoi['ymin'] = sys.argv[2]
         aoi['xmax'] = sys.argv[3]
         aoi['ymax'] = sys.argv[4]
         aoi['dx']   = 'user input'
         aoi['dy']   = 'user input'
+
     else:
-        print '[ ERROR ] Input extent file, or "xmin ymin xmax ymax epsg_number"'
+        print "[ ERROR ] bad arguments"
+        print 'Input extent file, or "<xmin> <ymin> <xmax> <ymax> <epsg_number>"'
         sys.exit( 1 )
+
+    # If no errors in parsing bbox extents, continue:
     tiles_in_aoi = Check_mod_tiles(**aoi)
     if len(tiles_in_aoi)==1:
         print "1 MODIS tiles encompassing area of interest:"

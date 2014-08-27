@@ -129,16 +129,35 @@ from Tools.STINT_outputs import Veclc2csv
 from Tools.pyModis_downmodis import downModis
 
 def prj_mkdir(dir_path):
-    try:
-        os.mkdir(dir_path)
-    except:
-        print '[ERROR] Problem creating ',dir_path
-        sys.exit(1)
+    '''Create a directory, with a bit of extra syntax.
+
+    Check if directory exists, print error and exit if directory cannot be created.
+    This error probably indicates a bad path, pointing to a directory structure
+    which doesn't exist yet.
+
+    :param dir_path: path to directory to create
+    :return: Exit(1) on failure, None on success
+    '''
+    if not os.path.isdir(dir_path):
+        try:
+            os.mkdir(dir_path)
+        except:
+            print '[ERROR] Problem creating ',dir_path
+            sys.exit(1)
 
 
 def Load_params(input_fn):
+    '''Populate project parameters dictionary.
+
+    :param input_fn: path to INPUT.txt
+    :return: (dict)
+    '''
     try:
         project = Parse_input('INPUT.txt')
+        if type(project)==list:
+            for err in project:
+                print err
+            sys.exit(1)
     except:
         print '[ERROR] Problem loading parameters from INPUT.txt'
         sys.exit(1)
@@ -154,31 +173,25 @@ def Load_params(input_fn):
     ### DEFINE AND RESOLVE HDF DIRECTORY
     processing_dir = os.path.join(project['prj_directory'],'Processing/')
     hdf_dir = os.path.join(processing_dir,'HDF/')
-    if not os.path.isdir(processing_dir):
-        os.mkdir(processing_dir)
+    prj_mkdir(processing_dir)
 
-    if not os.path.isdir(hdf_dir):
-        prj_mkdir(hdf_dir)
+    prj_mkdir(hdf_dir)
 
     ## DEFINE AND RESOLVE SHP DIRECTORY
     shp_dir = os.path.join(processing_dir,'SHP/')
-    if not os.path.isdir(shp_dir):
-        prj_mkdir(shp_dir)
+    prj_mkdir(shp_dir)
 
     ## DEFINE AND RESOLVE TIF DIRECTORY
     tif_dir = os.path.join(processing_dir,'TIF/')
-    if not os.path.isdir(tif_dir):
-        prj_mkdir(tif_dir)
+    prj_mkdir(tif_dir)
 
     ## DEFINE AND RESOLVE OUTPUT DIRECTORY
     out_dir = os.path.join(project['prj_directory'],'Output/')
-    if not os.path.isdir(out_dir):
-        prj_mkdir(out_dir)
+    prj_mkdir(out_dir)
 
     ## DEFINE AND RESOLVE CSV OUTPUT DIRECTORY
     csv_dir = os.path.join(out_dir,'CSV/')
-    if not os.path.isdir(csv_dir):
-        prj_mkdir(csv_dir)
+    prj_mkdir(csv_dir)
 
     # Expand 'project' dictionary
     project['NODATA']  = np.nan
@@ -196,7 +209,7 @@ def Load_params(input_fn):
         sys.exit(1)
 
     try:
-        project['modis_tiles'] = Check_mod_tiles(project['modis_tile_fn'],**project['aoi'])
+        project['modis_tiles'] = Check_mod_tiles(modis_tile_fn=project['modis_tile_fn'],**project['aoi'])
     except:
         print '[ERROR] Problems identifying MODIS tiles intersecting project AOI'
 
@@ -209,8 +222,12 @@ def Load_params(input_fn):
     return project
 
 
-# Main workflow function
 def Run_stage(stage_num):
+    '''Main workflow function.
+
+    :param stage_num: (INT 1-7) workflow stage to execute
+    :return: None
+    '''
     if stage_num == 1:
         # Validate MODIS datasets for ID'd tiles
         mflaws = Gather_mod_flaws(project)
@@ -346,8 +363,13 @@ def Run_stage(stage_num):
         print "only 7 stages..."
 
 
-# Some functions for parsing commandline arguments
 def is_stagenum(s,numstages=7):
+    '''Check if commandline argument is an acceptable stage number.
+
+    :param s: (string) arg to check against numstages
+    :param numstages: (int) Maximum stage_num for Run_stage(); Default 7
+    :return: True or False
+    '''
     try:
         argnum = int(s)
         if argnum in range(1,numstages+1):
@@ -359,6 +381,7 @@ def is_stagenum(s,numstages=7):
 
 
 def bad_arg_exit():
+    '''Print standard error for bad CLI arguments and exit.'''
     print "[ ERROR ] bad arguments"
     print "to run a specified stage, try $ python run.py <stage_num>"
     print "for documentation, type $ python run.py --help"
