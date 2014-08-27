@@ -152,20 +152,17 @@ def Load_params(input_fn):
     :param input_fn: path to INPUT.txt
     :return: (dict)
     '''
+    in_fn = 'INPUT.txt'
     try:
-        project = Parse_input('INPUT.txt')
-        if type(project)==list:
-            for err in project:
-                print err
-            sys.exit(1)
+        project = Parse_input(in_fn)
     except:
-        print '[ERROR] Problem loading parameters from INPUT.txt'
+        print '[ERROR] Problem loading parameters from', in_fn
         sys.exit(1)
 
     # Check for errors in input
     err = Check_input(project)
     if len(err):
-        print 'FIX ERRORS IN INPUT.txt:'
+        print 'FIX ERRORS IN %s:' % in_fn
         for problem in err:
             print problem
         sys.exit( 1 )
