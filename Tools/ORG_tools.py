@@ -34,7 +34,6 @@ def Parse_input(fn):
     :param fn: (str) path to INPUT.txt
     :return: (dict) STINT project parameters
     '''
-    err = []
     inp_params = {}
     inp_params['modis'] = {}
     inp_params['era']   = {}
@@ -116,10 +115,7 @@ def Parse_input(fn):
     
     jnk = inp_params.pop('aoi')
     
-    if len(err)>0:
-        return err
-    else:
-        return inp_params
+    return inp_params
 
 
 def Check_input(inp_params):
