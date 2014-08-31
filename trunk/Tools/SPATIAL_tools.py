@@ -21,12 +21,15 @@
 #  See the GNU General Public License for more details.
 #
 ##################################################################
+'''Module containing shapefile and
 
-import os,sys,math,cPickle
+'''
+import os,sys,math,cPickle,sys
 import rtree,ogr,osr,gdalconst
 import numpy as np
 
 class FastRtree(rtree.Rtree):
+    '''Accelerate Rtree implementation by using cPickle.'''
     def dumps(self, obj):
         return cPickle.dumps(obj, -1)
 
@@ -110,31 +113,72 @@ def Reprj_and_idx( src_dsn, dst_dsn, dst_srs, fields ):
 
 
 def Mk_proj(prj,outf):
+    '''Write an ESRI style .prj file defining
+    spatial reference for a shapefile dataset.
+
+    :param prj: (str) wkt representation of dataset projection
+    :param outf: (str) path to shapefile dataset, no extensions
+    :return: None
+    '''
     with open("%s.prj" % outf, "w") as proj:
         prj_out = osr.SpatialReference()
-        prj_out.ImportFromWkt(prj)
-        prj_out.MorphToESRI()
-        prj = prj_out.ExportToPrettyWkt()
-        proj.write(prj)
+        val = prj_out.ImportFromWkt(prj)
+        if val==0:
+            prj_out.MorphToESRI()
+            prj = prj_out.ExportToPrettyWkt()
+            if len(prj)>0:
+                proj.write(prj)
+            else:
+                print '[ERROR] osr projection string is empty:',outf
+                sys.exit(1)
+        else:
+            print '[ERROR] Could not determine projection for',outf
+            sys.exit(1)
+
+
+def Ogr_open(dsn):
+    '''Error handling for opening shapefiles.
+
+    :param dsn: (str) path to shapefile, no extensions
+    :return: (osgeo.ogr.DataSource) src_ds, (osgeo.ogr.Layer) src_lyr
+    '''
+    try:
+        src_ds  = ogr.Open(dsn+'.shp',gdalconst.GA_ReadOnly)
+        src_lyr = src_ds.GetLayer(0)
+    # AttributeError indicates src_ds==None
+    except AttributeError:
+        print '[ERROR] could not access shapefile',dsn
+        sys.exit(1)
+
+    return src_ds,src_lyr
 
 
 def Isect_poly_idx( src1_dsn, src1_pre, src1_id, src1_fields, area,
                     src2_dsn, src2_pre, src2_id, src2_fields, dst_dsn ):
+    '''Intersect two shapefiles, assuming both datasets:
+    * contain only polygon geometries
+    * consist of a complete set of shapefile and rtree idx extensions
+    * are already in the same projection or spatial reference system
+
+    :param src1_dsn: (str) path to first input shapefile, no extensions
+    :param src1_pre: (str) characters to prepend to output fields preserved from 1st src dsn
+    :param src1_id: (str) characters to prepend to id field in output dataset
+    :param src1_fields: (list) list of field names to preserve from 1st input dataset
+    :param area: (bool) True if 'area' attribute should be output
+    :param src2_dsn: (str) path to second input shapefile, no extensions
+    :param src2_pre: (str) characters to prepend to output fields preserved from 2nd src dsn
+    :param src2_id: (str) characters to prepend to id field in output dataset
+    :param src2_fields: (list) list of field names to preserve from 2nd input dataset
+    :param dst_dsn: (str) path to output shapefile, no extensions
+    :return: None
     '''
-    Isect(src1,src2,dst)
-    assume src1 and src2:
-    * are polygon shapefiles
-    * have shapefile and index extensions
-    * have same projection
-    '''
+
     # Load first dataset, and projection
-    src_ds1  = ogr.Open(src1_dsn+'.shp',gdalconst.GA_ReadOnly)
-    src_lyr1 = src_ds1.GetLayer(0)
+    src_ds1, src_lyr1  = Ogr_open(src1_dsn)
     srs      = src_lyr1.GetSpatialRef()
-    
+
     # Load second source dataset, plus index
-    src_ds2  = ogr.Open(src2_dsn+'.shp',gdalconst.GA_ReadOnly)
-    src_lyr2 = src_ds2.GetLayer(0)
+    src_ds2, src_lyr2  = Ogr_open(src2_dsn)
     src_r2   = FastRtree(src2_dsn)
     
     # Prepare output dataset
