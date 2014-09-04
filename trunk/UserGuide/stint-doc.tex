@@ -127,7 +127,10 @@ The ECMWF server sets a limit of about 2GB per file download.  Data should be do
 If the desired timespan will not fit on a single file, break it into as many downloads as necessary, with the start-date of each successive file one time-step later than the end-date of the previous file. e.g. if file1 ends 18:00 31. December 2011, then file2 should start 00:00 1. January 2012.
 
 \subsection{MODIS Datasets}\label{modis}
-MODIS products can be downloaded from two main sources, given below.  Future versions of \texttt{py-stint} will incorporate dataset retrieval tools and functions based on the \texttt{downmodis} module from the project \texttt{pyModis}. For now the best plan is to either figure out \texttt{downmodis} yourself (recommended, as it is excellent) or to (1) use a script in python or R to compile a list of files you want to download, then use a command line utility like \texttt{axel} to retrieve all the files in the list.
+MODIS products can be downloaded from two main sources, given below.  Future versions of \texttt{py-stint} will incorporate dataset retrieval tools and functions based on the \texttt{modis\_download.py} script from the \texttt{pyModis} project:
+\texttt{http://pymodis.fem-environment.eu/}
+
+ For now the best plan is to either figure out \texttt{modis\_download.py} yourself (recommended, as it is excellent) or to (1) write a script in python or R to compile a list of files you want to download, then (2) use a command line utility like \texttt{axel} to retrieve all the files in the list.
 
 After all files have been retrieved, the \texttt{MODIS\_Archive/} directory should be organized in the \texttt{archive/product/tile/*.hdf} structure illustrated in Section \ref{dirs}. 
 
@@ -140,17 +143,16 @@ Snow cover (National Snow and Ice Data Center):\\
 
 
 \section{Workflow}\label{run}
-\begin{enumerate}[i)]
-\item
+
+\subsection{Setup}
+
+\begin{itemize}\item
     \texttt{\$ python Tools/MODIS\_aoi.py path/to/aoi.shp}
-    \begin{itemize}
+    
     \item
         Print a list of \texttt{MODIS} tiles which should be included in 
         \texttt{MODIS\_ARCHIVE/}
-    \end{itemize}
-\item 
-    Prepare directories, archives, and INPUT.txt:
-    \begin{itemize}
+    
     \item
         Create project directory
     \item
@@ -169,10 +171,9 @@ Snow cover (National Snow and Ice Data Center):\\
     \item
         fill out INPUT.ex with actual project parameters, 
         then save as py\_stint/INPUT.txt
-    \end{itemize}
+\end{itemize}
 
-\end{enumerate}
-
+\subsection{Core Workflow}
 \begin{enumerate}[1)]
 \item
 \texttt{\$ python run.py 1}
