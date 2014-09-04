@@ -1,14 +1,12 @@
 00Contents	This file
 
-layout_d.tex German description of the refman classes 
+stint-doc.tex py-stint user guide
 
-layout_d.pdf The PDF version of Layout_d formatted for A4
+stint-doc-pdf The PDF version of stint-doc formatted for A4
 
 layout_e.tex English description of the refman classes 
 
 layout_e.pdf The PDF version of Layout_e formatted for A4
-
-lay_d2.tex Part 2 of the german description 
 
 lay_e2.tex Part 2 of the english description 
 
