@@ -18,7 +18,7 @@
 \title{py-stint: PYthon Spatial/Temporal INtersection Toolset}
 \author{IndEcol @ Norges teknisk-naturvitenskapelige universitet \\
 Wiley Bogren \\
-2014-08-25   \\
+2014-09-05   \\
 --- Version 1.1}
 
 \date{}
@@ -122,13 +122,14 @@ http://apps.ecmwf.int/datasets/data/interim\_full\_daily/licence/
 
 
 \attention
-The ECMWF server sets a limit of \~2GB per file download.  Data should be downloaded in netcdf format, in either 6-hour or 24-hour resolution, with a single field (attribute) per file. 
+The ECMWF server sets a limit of about 2GB per file download.  Data should be downloaded in netcdf format, in either 6-hour or 24-hour resolution, with a single field (attribute) per file. 
 
 If the desired timespan will not fit on a single file, break it into as many downloads as necessary, with the start-date of each successive file one time-step later than the end-date of the previous file. e.g. if file1 ends 18:00 31. December 2011, then file2 should start 00:00 1. January 2012.
 
 \subsection{MODIS Datasets}\label{modis}
-MODIS products can be downloaded from two main sources, given below.  Future versions of py-stint will incorporate dataset retrieval tools and functions based on the downmodis module from the project pyModis, however for now the 
+MODIS products can be downloaded from two main sources, given below.  Future versions of \texttt{py-stint} will incorporate dataset retrieval tools and functions based on the \texttt{downmodis} module from the project \texttt{pyModis}. For now the best plan is to either figure out \texttt{downmodis} yourself (recommended, as it is excellent) or to (1) use a script in python or R to compile a list of files you want to download, then use a command line utility like \texttt{axel} to retrieve all the files in the list.
 
+After all files have been retrieved, the \texttt{MODIS\_Archive/} directory should be organized in the \texttt{archive/product/tile/*.hdf} structure illustrated in Section \ref{dirs}. 
 
 Core MODIS products such as albedo and surface temperature:\\
 \texttt{http://e4ftl01.cr.usgs.gov/MOTA/}
@@ -137,11 +138,6 @@ Core MODIS products such as albedo and surface temperature:\\
 Snow cover (National Snow and Ice Data Center):\\
 \texttt{ftp://n5eil01u.ecs.nsidc.org/MOST/}
 
-* Identify \texttt{MODIS} tiles overlapping \texttt{AOI}
-
-* Download \texttt{MODIS} products for identified tiles
-
-* Arrange \texttt{MODIS\_Archive/h\_\_v\_\_/*.hdf} structure
 
 \section{Workflow}\label{run}
 \begin{enumerate}[i)]
