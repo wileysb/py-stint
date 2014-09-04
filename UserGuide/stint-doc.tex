@@ -122,7 +122,7 @@ http://apps.ecmwf.int/datasets/data/interim\_full\_daily/licence/
 
 
 \attention
-The ECMWF server sets a limit of about 2GB per file download.  Data should be downloaded in netcdf format, in either 6-hour or 24-hour resolution, with a single field (attribute) per file. 
+The ECMWF server sets a limit of about 2GB per file download.  Download data in netcdf format, in either 6-hour or 24-hour resolution, with a single field (attribute) per file. 
 
 If the desired timespan will not fit on a single file, break it into as many downloads as necessary, with the start-date of each successive file one time-step later than the end-date of the previous file. e.g. if file1 ends 18:00 31. December 2011, then file2 should start 00:00 1. January 2012.
 
@@ -130,9 +130,9 @@ If the desired timespan will not fit on a single file, break it into as many dow
 MODIS products can be downloaded from two main sources, given below.  Future versions of \texttt{py-stint} will incorporate dataset retrieval tools and functions based on the \texttt{modis\_download.py} script from the \texttt{pyModis} project:
 \texttt{http://pymodis.fem-environment.eu/}
 
- For now the best plan is to either figure out \texttt{modis\_download.py} yourself (recommended, as it is excellent) or to (1) write a script in python or R to compile a list of files you want to download, then (2) use a command line utility like \texttt{axel} to retrieve all the files in the list.
+For now the best plan is to either figure out \texttt{modis\_download.py} yourself (recommended, as it is excellent) or to (1) write a script in python or R to compile a list of files you want to download, then (2) use a command line utility like \texttt{axel} to retrieve all the files in the list.
 
-After all files have been retrieved, the \texttt{MODIS\_Archive/} directory should be organized in the \texttt{archive/product/tile/*.hdf} structure illustrated in Section \ref{dirs}. 
+After all files have been retrieved, ensure that the \texttt{MODIS\_Archive/} directory is organized in the \texttt{archive/product/tile/*.hdf} structure, as illustrated in Section \ref{dirs}. 
 
 Core MODIS products such as albedo and surface temperature:\\
 \texttt{http://e4ftl01.cr.usgs.gov/MOTA/}
@@ -146,12 +146,13 @@ Snow cover (National Snow and Ice Data Center):\\
 
 \subsection{Setup}
 
-\begin{itemize}\item
-    \texttt{\$ python Tools/MODIS\_aoi.py path/to/aoi.shp}
-    
+\begin{itemize}
     \item
-        Print a list of \texttt{MODIS} tiles which should be included in 
-        \texttt{MODIS\_ARCHIVE/}
+        \texttt{\$ python Tools/MODIS\_aoi.py path/to/aoi.shp}
+        \begin{itemize}
+            \item
+                Print a list of \texttt{MODIS} tiles to include in \texttt{MODIS\_ARCHIVE/}
+        \end{itemize}
     
     \item
         Create project directory
@@ -169,15 +170,112 @@ Snow cover (National Snow and Ice Data Center):\\
             tiles identified in Workflow Stage i
         \end{itemize}
     \item
-        fill out INPUT.ex with actual project parameters, 
+        Fill out INPUT.ex with actual project parameters, 
         then save as py\_stint/INPUT.txt
 \end{itemize}
+\newpage
+\subsection{Processing}
+After completing the setup, execute each of the 7 processing stages consecutively via the command line.
 
-\subsection{Core Workflow}
-\begin{enumerate}[1)]
-\item
-\texttt{\$ python run.py 1}
-\end{enumerate}
+\subsubsection{\textbf{Stage 1:} \texttt{\$ python run.py 1}}
+  \begin{description}
+    \item [\textbf{Summary}]
+          Parse INPUT.txt
+        
+          Check structure of required directories
+        
+          Verify integrity of MODIS and ERA datasets
+\\
+      
+    \item [Requires]
+      \begin{itemize}
+        \item
+          http://hapticity.net/2007/03/23/latex-itemize-bullet-characters/
+        \item
+          words
+\\
+      \end{itemize}
+  
+  
+    \item [Produces]
+      \begin{itemize}
+        \item
+          words
+        \item
+          words
+\\
+      \end{itemize}
+      
+    \item [Explore]
+      \begin{itemize}
+        \item
+          words
+        \item
+          words
+\\
+      \end{itemize}
+
+    \item [Troubleshoot]
+      \begin{itemize}
+        \item
+          words
+        \item
+          words
+\\
+      \end{itemize}
+  \end{description}
+  
+
+\subsubsection{\textbf{Stage 2:} \texttt{\$ python run.py 2}}
+  \begin{description}
+    \item [Summary]
+      \begin{itemize}
+        \item
+          Do
+        \item
+          More
+        \item
+          Stuff
+\\
+      \end{itemize}
+    \item [Requires]
+      \begin{itemize}
+        \item
+          words
+        \item
+          words
+\\
+      \end{itemize}
+  
+  
+    \item [Produces]
+      \begin{itemize}
+        \item
+          words
+        \item
+          words
+\\
+      \end{itemize}
+      
+    \item [Explore]
+      \begin{itemize}
+        \item
+          words
+        \item
+          words
+\\
+      \end{itemize}
+
+    \item [Troubleshoot]
+      \begin{itemize}
+        \item
+          words
+        \item
+          words
+\\
+      \end{itemize}
+  \end{description}
+\newpage
  +------+---------------------+----------------------+--------------------+\\
     |Stage | Summary             | Requires             | Produces           |\\
     +======+=====================+======================+====================+\\

@@ -44,7 +44,7 @@
     |      | check archives      | aoi/landcover,       |                    |
     |      |                     | MODIS tiles shp      |                    |
     +------+---------------------+----------------------+--------------------+
-    | 2    | src -> hdf5         | As stage 1           | datasets.hdf5      |
+    | 2    | hdf/netcdf -> hdf5  | As stage 1           | datasets.hdf5      |
     +------+---------------------+----------------------+--------------------+
     | 3    | hdf5 -> shp         | ERA & MODIS          | ERA & MODIS shp    |
     |      |                     | hdf5 array files     | -native projections|
