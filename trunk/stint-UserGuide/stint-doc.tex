@@ -1,0 +1,337 @@
+% %
+% stint-UserGuide.tex
+% tutorial and other guide material for py-stint
+%
+%  Relies on REFMAN.CLS (LaTeX2e)
+%
+\documentclass[twoside,a4paper]{refart}
+\usepackage{makeidx}
+\usepackage{ifthen}
+\usepackage{enumerate}
+% ifthen wird vom Bild von N.Beebe gebraucht!
+
+\def\bs{\char'134 } % backslash in \tt font.
+\newcommand{\ie}{i.\,e.,}
+\newcommand{\eg}{e.\,g..}
+\DeclareRobustCommand\cs[1]{\texttt{\char`\\#1}}
+
+\title{py-stint: PYthon Spatial/Temporal INtersection Toolset}
+\author{IndEcol @ Norges teknisk-naturvitenskapelige universitet \\
+Wiley Bogren \\
+2014-08-25   \\
+--- Version 1.1}
+
+\date{}
+\emergencystretch1em  %
+
+\pagestyle{myfootings}
+\markboth{User Guide to \textrm{py-stint}}%
+         {User Guide to \textrm{py-stint}}
+
+\makeindex 
+
+\setcounter{tocdepth}{2}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+        This document describes the capabilities and use of the 
+        \texttt{py-stint} toolset for spatial and temporal 
+        intersections.  The primary expected use for py-stint is 
+        to produce datasets combining land-use and climate data 
+        with MODIS albedo timeseries.
+\end{abstract}
+
+
+\tableofcontents
+
+\newpage
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\section{Directory Structure}
+\label{dirs}
+The \texttt{py-stint} project relies on four essential directories.  
+The user should have write access to \texttt{INPUT.txt} and \texttt{STINT/}. 
+These directories can be located anywhere relative to each other, but the structure of each directory should be as follows:
+
+\begin{description}
+\item[\texttt{py-stint/}]
+        \texttt{INPUT.txt}\\
+        \texttt{run.py}\\
+        \texttt{Tools/}\\
+          \-\hspace{0.5cm} \texttt{*.py modules}\\
+          \-\hspace{0.5cm} \texttt{Data/}\\
+            \-\hspace{1.0cm} \texttt{MODIS\_tiles.shp}
+
+\item[\texttt{MODIS\_ARCHIVE/}]
+        \texttt{MCD43A3/}  --One directory per MODIS product\\
+          \-\hspace{0.5cm} \texttt{h19v02/}  --One directory per MODIS tile\\
+            \-\hspace{1.0cm} \texttt{*.hdf}
+
+\item[\texttt{ERA\_ARCHIVE/}]
+        \texttt{era\_climate\_t2m\_1of3.nc}\\
+        \texttt{era\_climate\_t2m\_2of3.nc}\\
+        \texttt{era\_climate\_t2m\_3of3.nc}\\
+        \texttt{climate\_field2\_1of1.nc}
+\item[\texttt{STINT/}]
+        Holds output directories, which are made while running \texttt{py-stint}.
+\end{description}
+
+\section{Getting Data}
+\label{data}
+\index{data}
+
+\subsection{Corine Landcover}\label{clc}
+2006 Corine Land Cover seamless vector data is part of the European Commission programme to COoRdinate INformation on the Environment (Corine). 
+
+EEA grants free access to all its data/applications provided that the user agrees:
+\begin{itemize}
+\item
+to acknowledge the source as follows: Copyright EEA, Copenhagen, 2007
+
+\item
+to display a link to the EEA web site http://www.eea.europa.eu
+
+\item
+not to use the data/applications for commercial purposes unless the Agency has expressly granted the right to do so 
+\end{itemize}
+A spatialite database containing all landcover classes can be downloaded from the following link:
+
+http://www.eea.europa.eu/data-and-maps/data/clc-2006-vector-data-version-3/
+
+
+The spatialite database can be converted to shapefile and cropped to an Area of Interest via commandline:\\
+\texttt{\$ ogr2ogr -f "ESRI Shapefile" <path/to/output> <path/to/clc06.sqlite> -dsco SPATIALITE=yes -clipsrc <xmin> <ymin> <xmax> <ymax>}
+
+
+Where \texttt{<xmin> <ymin> <xmax> <ymax>} are the bounding x and y coordinates of the Area of Interest, in the LAEA-ETRS89 projection.
+
+\subsection{ERA-Interim Climate}\label{era}
+ERA Interim climate data can be downloaded from the following website. The server may require an user account before allowing the download.  
+
+download:
+http://apps.ecmwf.int/datasets/data/interim\_full\_daily/
+
+terms of use:
+http://apps.ecmwf.int/datasets/data/interim\_full\_daily/licence/
+
+
+\attention
+The ECMWF server sets a limit of \~2GB per file download.  Data should be downloaded in netcdf format, in either 6-hour or 24-hour resolution, with a single field (attribute) per file. 
+
+If the desired timespan will not fit on a single file, break it into as many downloads as necessary, with the start-date of each successive file one time-step later than the end-date of the previous file. e.g. if file1 ends 18:00 31. December 2011, then file2 should start 00:00 1. January 2012.
+
+\subsection{MODIS Datasets}\label{modis}
+MODIS products can be downloaded from two main sources, given below.  Future versions of py-stint will incorporate dataset retrieval tools and functions based on the downmodis module from the project pyModis, however for now the 
+
+
+Core MODIS products such as albedo and surface temperature:\\
+\texttt{http://e4ftl01.cr.usgs.gov/MOTA/}
+
+
+Snow cover (National Snow and Ice Data Center):\\
+\texttt{ftp://n5eil01u.ecs.nsidc.org/MOST/}
+
+* Identify \texttt{MODIS} tiles overlapping \texttt{AOI}
+
+* Download \texttt{MODIS} products for identified tiles
+
+* Arrange \texttt{MODIS\_Archive/h\_\_v\_\_/*.hdf} structure
+
+\section{Workflow}\label{run}
+\begin{enumerate}[i)]
+\item
+    \texttt{\$ python Tools/MODIS\_aoi.py path/to/aoi.shp}
+    \begin{itemize}
+    \item
+        Print a list of \texttt{MODIS} tiles which should be included in 
+        \texttt{MODIS\_ARCHIVE/}
+    \end{itemize}
+\item 
+    Prepare directories, archives, and INPUT.txt:
+    \begin{itemize}
+    \item
+        Create project directory
+    \item
+        Prepare \texttt{ERA} and \texttt{MODIS} archives 
+        as per Section \ref{data}.  \\
+        \texttt{MODIS\_ARCHIVE/} should be complete
+        with regard to:
+        \begin{itemize}
+        \item
+            products (MCD43A3 etc)
+        \item
+            dates within timeframe
+        \item
+            tiles identified in Workflow Stage i
+        \end{itemize}
+    \item
+        fill out INPUT.ex with actual project parameters, 
+        then save as py\_stint/INPUT.txt
+    \end{itemize}
+
+\end{enumerate}
+
+\begin{enumerate}[1)]
+\item
+\texttt{\$ python run.py 1}
+\end{enumerate}
+ +------+---------------------+----------------------+--------------------+\\
+    |Stage | Summary             | Requires             | Produces           |\\
+    +======+=====================+======================+====================+\\
+    |      |                     | MODIS archive,       |                    |\\
+    |      |                     | ERA archive          |                    |\\
+    | 1    | Parse input,        | INPUT.txt,           | directories        |\\
+    |      | check archives      | aoi/landcover,       |                    |\\
+    |      |                     | MODIS tiles shp      |                    |\\
+    +------+---------------------+----------------------+--------------------+\\
+    | 2    | src -> hdf5         | As stage 1           | datasets.hdf5      |\\
+    +------+---------------------+----------------------+--------------------+\\
+    | 3    | hdf5 -> shp         | ERA \& MODIS          | ERA \& MODIS shp    |\\
+    |      |                     | hdf5 array files     | -native projections|\\
+    +------+---------------------+----------------------+--------------------+\\
+    | 4    | reproject+index     | ERA \& MODIS shp:     | ERA \& MODIS shp+idx|\\
+    |      | ERA \& MODIS shp     | -native projections  | -aoi/landcover prj |\\
+    +------+---------------------+----------------------+--------------------+\\
+    | 5    | lc + climate -> lcc | landcover/aoi shp    | lcc.shp            |\\
+    |      |                     | era-reproj shp+idx   |                    |\\
+    +------+---------------------+----------------------+--------------------+\\
+    | 6    | lcc + modis -> lcm  | lcc.shp,             | lcm.shp            |\\
+    |      |                     | modis-reproj shp+idx |                    |\\
+    +------+---------------------+----------------------+--------------------+\\
+    | 7    |  Output hdf5+lcm    | lcm.shp,             | datasets.csv       |\\
+    |      |  -> CSV             | datasets.hdf5        |                    |\\
+    +------+---------------------+----------------------+--------------------+\\
+
+
+
+      Stage 1
+        Loads project parameters from INPUT.txt
+        Loads landcover/AOI shapefile
+        Checks MODIS archive for corrupt or missing files
+          within in the region, timeframe, and datasets specified
+        Checks ERA archive for gaps in timeseries
+          within the timeframe and datasets specified
+
+      Stage 2
+        Constructs array file (hdf5) with dimensions [d,y,x] for each
+        MODIS and ERA dataset
+        * x and y are spatial coordinates in dataset's native projection
+        * d represents index number of modis interval
+        * d=0 is the first modis interval in the timeframe, eg 2000049
+        * hdf5 arrays are subset to the project timeframe and minimum
+          rectangle necessary to completely contain the landcover region (AOI)
+
+      Stage 3
+        Produce ERA \& MODIS shapefiles from hdf5 subset arrays
+        * Shapefiles are in native projection (Sinusoidal \& WGS84)
+        * consist of a polygon grid, each raster cell represented by
+          rectangle with attributes id,x\_ctr,y\_ctr,x\_ind,y\_ind
+
+      Stage 4
+        Reproject ERA \& MODIS shapefiles to landcover(aoi) projection
+        Construct spatial rtree index (idx) for each
+
+      Stage 5
+        Intersect reprojected climate (ERA) + landcover (aoi) shapefiles
+        to produce lcc.shp
+          * lcc = land cover climate
+          * attributes specified by lc\_ in INPUT are preserved from aoi
+          * era idx to speed up feature matching
+
+      Stage 6
+        Intersect lcc + reprojected modis shapefiles to produce lcm.shp
+        * lcm = landcover climate modis
+        * modis idx to speed up feature matching
+        * lcm.shp is effectively the central product of this workflow, linking
+          breaking each landcover feature into polygons wholly within and
+          linked to individual MODIS and ERA cells
+
+      Stage 7
+        lcm.shp used as guide to export modis and era timeseries to CSV
+        * lc.csv: each row is a landcover feature with MODIS and ERA links
+        * MODIS and ERA dataset csvs: each row is a full timeseries for an
+          individual cell
+        * datasets with more than 20k landcover features are broken up into
+          regions made up of 50 MODIS cells
+
+
+% Commands shifting sections to Appendices, and labelling Appendix as such
+\clearpage
+\section*{Appendix}
+\addcontentsline{toc}{section}{Appendix}
+\appendix
+\section{Requirements \& Installation}
+\label{setup}
+\index{setup}
+
+Python 2.7 is required for \texttt{py-stint}.
+
+On an Ubuntu system, the following commands are sufficient to set up the libraries and python modules listed in Sections \ref{libraries} and \ref{python-modules}.
+
+\texttt{\$ sudo apt-get install ipython python-numpy python-pip python-scipy python-matplotlib python-h5py python-software-properties}
+
+\texttt{\$ sudo add-apt-repository ppa:ubuntugis/ubuntugis-unstable}
+
+\texttt{\$ sudo apt-get install libspatialindex-dev python-gdal gdal-bin}
+
+\texttt{\$ sudo pip-install rtree pyproj}
+
+
+\subsection{Library Dependencies}\label{libraries}
+The following software libraries must be compiled before many 
+of the python modules can be installed.  
+When possible, try to compile them in the order listed, as some 
+(such as gdal) have capabilities which depend on the previous 
+libraries already being present.
+\begin{description}
+
+\item[GEOS]
+        Required for geometric intersections.\\
+        http://trac.osgeo.org/geos/
+
+\item[libspatialindex]
+        Required for rtree spatial indexing module for python.\\
+        http://libspatialindex.github.io/
+
+\item[netCDF4]
+        Required for ERA climate data and gdal support for MODIS hdf.\\
+        https://www.unidata.ucar.edu/software/netcdf/
+        
+\item[hdf5]
+       Required for h5py and the format used 
+       to aggregate MODIS and ERA subset arrays.\\
+       http://www.hdfgroup.org/HDF5/
+       
+\item[GDAL]
+        Required for geospatial data I/O.\\
+        http://www.gdal.org/
+
+\item[proj.4]
+       required for reprojecting shapefile and raster datasets.\\
+       http://trac.osgeo.org/proj/
+
+\end{description}
+
+
+\subsection{Python Dependencies}\label{python-modules}
+Basic modules are included in most installations of python.  Scientific and Geospatial modules can be installed via package management, pip, or easyinstall. Geospatial modules in particular may require the libraries listed in Section \ref{libraries} to be available.
+\begin{description}
+\item[Basic Modules]
+        os, sys, math, glob, multiprocessing, datetime, cPickle, csv
+
+\item[Scientific Modules]
+        numpy, scipy, netCDF4, h5py
+
+\item[Geospatial Modules]
+        gdal+ogr+osr, rtree
+     
+\end{description}
+
+
+\end{document}
