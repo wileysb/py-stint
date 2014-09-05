@@ -143,6 +143,42 @@ Snow cover (National Snow and Ice Data Center):\\
 
 \newpage
 \section{Workflow}\label{run}
+Python programs given in the workflow guide should be called from the 
+\texttt{py-stint/} directory.  These commands are presented in the format \\
+\texttt{\$ python \ldots}
+
+\subsection{Troubleshooting}
+While I tried hard to write code that catches problems and prints clear messages describing the nature of the error, there may be situations where unclear errors slip through.  If such errors emerge while running \texttt{py-stint}, they will probably come in one of the following flavors:
+\begin{enumerate}
+  \item
+    Input: a problem with the format or structure of input parameters, 
+    project directories, or files linked to the project.  
+    
+    Going through the INPUT.txt file and the directory structure 
+    can help resolve this kind of error.
+  \item
+    File Access: a problem opening or loading the contents of a file, 
+    such as a shapefile or hdf.  
+    
+    This can arise through an input error, a problem with the 
+    installation of the module being used to access the data,
+    or a problem with the library that module depends on.
+  \item
+    Data Operations: a problem manipulating or transforming data, 
+    such as managing data types, transforming spatial coordinates or 
+    geometries between projections, or sorting multiple 
+    \texttt{MODIS} arrays into a single subset array.
+    
+    This could be due to a module/library installation problem, or 
+    because of a previous failed operation. Errors do not always end the process 
+    at the point when they occur. It could be that a file access or 
+    transformation step failed earlier in the processing, but the 
+    resulting incorrect or None type object did not immediately provoke an 
+    error or Exception.
+    
+\end{enumerate}
+
+Errors can be frustrating, and annoying to track down.  As much as possible, I've tried to prevent them or catch them for clear reporting!
 
 \subsection{Setup}
 
@@ -188,19 +224,17 @@ Finally, the time variable is loaded from each NetCDF file in the \texttt{ERA} a
 
   \begin{description}
     \item [Requires]
-      \begin{itemize}
-        \item
+     
           \texttt{INPUT.txt}
-        \item
+        
           \texttt{AOI}/landcover (shapefile or raster directory)
-        \item
+        
           \texttt{MODIS\_archive}
-        \item
+        
           \texttt{ERA\_archive}
-        \item
+        
           \texttt{MODIS\_tiles.shp}
-\\
-      \end{itemize}
+      
   
   
     \item [Produces]
@@ -220,55 +254,96 @@ Finally, the time variable is loaded from each NetCDF file in the \texttt{ERA} a
   
 \subsubsection{\textbf{Stage 2:} \texttt{\$ python run.py 2}}
 This stage aggregates each \texttt{MODIS} and \texttt{ERA} dataset into
-a single hdf5 array file, with dimensions [time,y,x]. 
+a single hdf5 array file, with dimensions [time, y, x].
 
-        * x and y are spatial coordinates in dataset's native projection\\
-        * d represents index number of modis interval\\
-        * d=0 is the first modis interval in the timeframe, eg 2000049\\
-        * hdf5 arrays are subset to the project timeframe and minimum\\
-          rectangle necessary to completely contain the \texttt{AOI}
+The [time] dimension is shared by \texttt{MODIS} and \texttt{ERA} arrays, each timestep covering one 16-day \texttt{MODIS} observation period.
 
-The hdf5 array files are output to \texttt{STINT/Processing/HDF/}
+The spatial dimensions [y,x] are defined by the dataset's 
+native projection (\texttt{MODIS sinusoidal} or \texttt{WGS84} geographic coordinates).
+        
+hdf5 arrays are cropped to the project timeframe and the minimum 
+rectangle necessary to completely contain the \texttt{AOI}.
 
-Constructs array file (hdf5) with dimensions [time,y,x] for each
-        MODIS and ERA dataset
 
+\texttt{MODIS} datasets: tiles are merged, subsets determined, and days aggregated.
+
+\texttt{ERA} datasets: subsets determined, 6- or 24-hour records averaged to match 16-day \texttt{MODIS} intervals.
+
+  \begin{description}
+    \item [Requires]
+     
+          \texttt{INPUT.txt}
+        
+          \texttt{AOI}/landcover (shapefile or raster directory)
+        
+          \texttt{MODIS\_archive}
+        
+          \texttt{ERA\_archive}
+        
+          \texttt{MODIS\_tiles.shp}
+  
+  
+    \item [Produces]
+      \texttt{STINT/Processing/HDF/*.hdf5}
+      
+
+    \item [Explore]
+      The hdf5 array file is probably the richest, most exciting format 
+      generated in \texttt{py-stint} processing. Data for a given region 
+      and timeframe is stored in a single, compact and efficient format. 
+      It has excellent potential for visualization of spatial and temporal 
+      trends within albedo and climate datasets. 
+      
+      The first tool for exploring hdf5 data will be a python program for
+       converting individual timesteps to geoTIFF files, which can be 
+       viewed in a desktop GIS browswer.
+      
+      
+      * Python: h5py and numpy
+      
+      * R: rhdf5, h5r, or ncdf4 
+      
+      * matlab: h5disp and h5read
+
+    \item [Troubleshoot]
+      Words regarding potential trouble, and how to shoot it
+  \end{description}
+
+
+\subsubsection{\textbf{Stage 3:} \texttt{\$ python run.py 3}}
+        Produce \texttt{ERA} and \texttt{MODIS} shapefiles from hdf5 subset arrays
+        
+        * Shapefiles are in native projection (Sinusoidal \& WGS84)
+        
+        * consist of a polygon grid, each raster cell represented by
+          rectangle with attributes id,x\_ctr,y\_ctr,x\_ind,y\_ind
 
   \begin{description}
     \item [Requires]
       \begin{itemize}
         \item
-          \texttt{INPUT.txt}
-        \item
-          \texttt{AOI}/landcover (shapefile or raster directory)
-        \item
-          \texttt{MODIS\_archive}
-        \item
-          \texttt{ERA\_archive}
-        \item
-          \texttt{MODIS\_tiles.shp}
-\\
+          \texttt{STINT/Processing/HDF/*.hdf5}
       \end{itemize}
   
   
     \item [Produces]
-      *.hdf5
+      \texttt{ERA} and \texttt{MODIS} shapefiles, native projections
+      
+      \texttt{STINT/Processing/SHP/*.shp}
       
 
     \item [Explore]
-      hdf5!  Lots to explore!  No tools yet, but some recommendations for python or matlab toolkits, where to find useful attributes, etc.
+      words
+      
+      words
 
     \item [Troubleshoot]
       Words regarding potential trouble, and how to shoot it
   \end{description}
-\newpage
+
  +------+---------------------+----------------------+--------------------+\\
     |Stage | Summary             | Requires             | Produces           |\\
     +======+=====================+======================+====================+\\
-
-    +------+---------------------+----------------------+--------------------+\\
-    | 2    | src -> hdf5         | As stage 1           | datasets.hdf5      |\\
-    +------+---------------------+----------------------+--------------------+\\
     | 3    | hdf5 -> shp         | ERA \& MODIS          | ERA \& MODIS shp    |\\
     |      |                     | hdf5 array files     | -native projections|\\
     +------+---------------------+----------------------+--------------------+\\
@@ -286,38 +361,175 @@ Constructs array file (hdf5) with dimensions [time,y,x] for each
     +------+---------------------+----------------------+--------------------+\\
 
 
-      Stage 3
-        Produce ERA \& MODIS shapefiles from hdf5 subset arrays
-        * Shapefiles are in native projection (Sinusoidal \& WGS84)
-        * consist of a polygon grid, each raster cell represented by
-          rectangle with attributes id,x\_ctr,y\_ctr,x\_ind,y\_ind
 
-      Stage 4
+\subsubsection{\textbf{Stage 4:} \texttt{\$ python run.py 4}}
         Reproject ERA \& MODIS shapefiles to landcover(aoi) projection
+        
+       
         Construct spatial rtree index (idx) for each
 
-      Stage 5
+  \begin{description}
+    \item [Requires]
+      \begin{itemize}
+        \item
+          words
+        \item
+          words
+        \item
+          words
+        \item
+          words
+        \item
+          words
+
+      \end{itemize}
+  
+  
+    \item [Produces]
+      words
+      
+      words
+      
+
+    \item [Explore]
+      words
+      
+      words
+
+    \item [Troubleshoot]
+      Words regarding potential trouble, and how to shoot it
+  \end{description}
+
+
+\subsubsection{\textbf{Stage 5:} \texttt{\$ python run.py 5}}
         Intersect reprojected climate (ERA) + landcover (aoi) shapefiles
         to produce lcc.shp
+        
           * lcc = land cover climate
+          
           * attributes specified by lc\_ in INPUT are preserved from aoi
+          
           * era idx to speed up feature matching
 
-      Stage 6
+  \begin{description}
+    \item [Requires]
+      \begin{itemize}
+        \item
+          words
+        \item
+          words
+        \item
+          words
+        \item
+          words
+        \item
+          words
+
+      \end{itemize}
+  
+  
+    \item [Produces]
+      words
+      
+      words
+      
+
+    \item [Explore]
+      words
+      
+      words
+
+    \item [Troubleshoot]
+      Words regarding potential trouble, and how to shoot it
+  \end{description}
+
+
+\subsubsection{\textbf{Stage 6:} \texttt{\$ python run.py 6}}
         Intersect lcc + reprojected modis shapefiles to produce lcm.shp
+        
         * lcm = landcover climate modis
+        
         * modis idx to speed up feature matching
+        
         * lcm.shp is effectively the central product of this workflow, linking
           breaking each landcover feature into polygons wholly within and
           linked to individual MODIS and ERA cells
 
-      Stage 7
-        lcm.shp used as guide to export modis and era timeseries to CSV
+  \begin{description}
+    \item [Requires]
+      \begin{itemize}
+        \item
+          words
+        \item
+          words
+        \item
+          words
+        \item
+          words
+        \item
+          words
+
+      \end{itemize}
+  
+  
+    \item [Produces]
+      words
+      
+      words
+      
+
+    \item [Explore]
+      words
+      
+      words
+
+    \item [Troubleshoot]
+      Words regarding potential trouble, and how to shoot it
+  \end{description}
+
+
+\subsubsection{\textbf{Stage 7:} \texttt{\$ python run.py 7}}
+      lcm.shp used as guide to export modis and era timeseries to CSV
+      
         * lc.csv: each row is a landcover feature with MODIS and ERA links
+        
         * MODIS and ERA dataset csvs: each row is a full timeseries for an
           individual cell
+          
         * datasets with more than 20k landcover features are broken up into
           regions made up of 50 MODIS cells
+
+  \begin{description}
+    \item [Requires]
+      \begin{itemize}
+        \item
+          words
+        \item
+          words
+        \item
+          words
+        \item
+          words
+        \item
+          words
+
+      \end{itemize}
+  
+  
+    \item [Produces]
+      words
+      
+      words
+      
+
+    \item [Explore]
+      words
+      
+      words
+
+    \item [Troubleshoot]
+      Words regarding potential trouble, and how to shoot it
+  \end{description}
 
 
 % Commands shifting sections to Appendices, and labelling Appendix as such
