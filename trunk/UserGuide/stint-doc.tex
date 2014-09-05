@@ -141,7 +141,7 @@ Core MODIS products such as albedo and surface temperature:\\
 Snow cover (National Snow and Ice Data Center):\\
 \texttt{ftp://n5eil01u.ecs.nsidc.org/MOST/}
 
-
+\newpage
 \section{Workflow}\label{run}
 
 \subsection{Setup}
@@ -173,117 +173,99 @@ Snow cover (National Snow and Ice Data Center):\\
         Fill out INPUT.ex with actual project parameters, 
         then save as py\_stint/INPUT.txt
 \end{itemize}
-\newpage
+
+
 \subsection{Processing}
 After completing the setup, execute each of the 7 processing stages consecutively via the command line.
 
 \subsubsection{\textbf{Stage 1:} \texttt{\$ python run.py 1}}
+The stage begins by parsing project parameters from \texttt{INPUT.txt}, as well as loading the projection and extent from the area of interest (\texttt{AOI}). Technically, these are loaded at the start of every stage, but this is where you'll be alerted to any errors in the input parameters.
+
+The stage then checks for corrupt or missing files within the \texttt{MODIS\_archive} given the region, timeframe and datasets specified in the input parameters.
+
+Finally, the time variable is loaded from each NetCDF file in the \texttt{ERA} archive.  An error is raised if there are any gaps or overlaps in timesteps.
+
+
   \begin{description}
-    \item [\textbf{Summary}]
-          Parse INPUT.txt
-        
-          Check structure of required directories
-        
-          Verify integrity of MODIS and ERA datasets
-\\
-      
     \item [Requires]
       \begin{itemize}
         \item
-          http://hapticity.net/2007/03/23/latex-itemize-bullet-characters/
+          \texttt{INPUT.txt}
         \item
-          words
+          \texttt{AOI}/landcover (shapefile or raster directory)
+        \item
+          \texttt{MODIS\_archive}
+        \item
+          \texttt{ERA\_archive}
+        \item
+          \texttt{MODIS\_tiles.shp}
 \\
       \end{itemize}
   
   
     \item [Produces]
-      \begin{itemize}
-        \item
-          words
-        \item
-          words
-\\
-      \end{itemize}
+      Prints a report on any issues found in the 
+      \texttt{MODIS} or \texttt{ERA} archives.
       
+      Creates subdirectories within the \texttt{STINT/} directory, 
+      if they are not already present.
+      
+
     \item [Explore]
-      \begin{itemize}
-        \item
-          words
-        \item
-          words
-\\
-      \end{itemize}
+      This stage produces no new data to explore.
 
     \item [Troubleshoot]
-      \begin{itemize}
-        \item
-          words
-        \item
-          words
-\\
-      \end{itemize}
+      Words regarding potential trouble, and how to shoot it
   \end{description}
   
-
 \subsubsection{\textbf{Stage 2:} \texttt{\$ python run.py 2}}
+This stage aggregates each \texttt{MODIS} and \texttt{ERA} dataset into
+a single hdf5 array file, with dimensions [time,y,x]. 
+
+        * x and y are spatial coordinates in dataset's native projection\\
+        * d represents index number of modis interval\\
+        * d=0 is the first modis interval in the timeframe, eg 2000049\\
+        * hdf5 arrays are subset to the project timeframe and minimum\\
+          rectangle necessary to completely contain the \texttt{AOI}
+
+The hdf5 array files are output to \texttt{STINT/Processing/HDF/}
+
+Constructs array file (hdf5) with dimensions [time,y,x] for each
+        MODIS and ERA dataset
+
+
   \begin{description}
-    \item [Summary]
-      \begin{itemize}
-        \item
-          Do
-        \item
-          More
-        \item
-          Stuff
-\\
-      \end{itemize}
     \item [Requires]
       \begin{itemize}
         \item
-          words
+          \texttt{INPUT.txt}
         \item
-          words
+          \texttt{AOI}/landcover (shapefile or raster directory)
+        \item
+          \texttt{MODIS\_archive}
+        \item
+          \texttt{ERA\_archive}
+        \item
+          \texttt{MODIS\_tiles.shp}
 \\
       \end{itemize}
   
   
     \item [Produces]
-      \begin{itemize}
-        \item
-          words
-        \item
-          words
-\\
-      \end{itemize}
+      *.hdf5
       
+
     \item [Explore]
-      \begin{itemize}
-        \item
-          words
-        \item
-          words
-\\
-      \end{itemize}
+      hdf5!  Lots to explore!  No tools yet, but some recommendations for python or matlab toolkits, where to find useful attributes, etc.
 
     \item [Troubleshoot]
-      \begin{itemize}
-        \item
-          words
-        \item
-          words
-\\
-      \end{itemize}
+      Words regarding potential trouble, and how to shoot it
   \end{description}
 \newpage
  +------+---------------------+----------------------+--------------------+\\
     |Stage | Summary             | Requires             | Produces           |\\
     +======+=====================+======================+====================+\\
-    |      |                     | MODIS archive,       |                    |\\
-    |      |                     | ERA archive          |                    |\\
-    | 1    | Parse input,        | INPUT.txt,           | directories        |\\
-    |      | check archives      | aoi/landcover,       |                    |\\
-    |      |                     | MODIS tiles shp      |                    |\\
+
     +------+---------------------+----------------------+--------------------+\\
     | 2    | src -> hdf5         | As stage 1           | datasets.hdf5      |\\
     +------+---------------------+----------------------+--------------------+\\
@@ -303,24 +285,6 @@ After completing the setup, execute each of the 7 processing stages consecutivel
     |      |  -> CSV             | datasets.hdf5        |                    |\\
     +------+---------------------+----------------------+--------------------+\\
 
-
-
-      Stage 1
-        Loads project parameters from INPUT.txt
-        Loads landcover/AOI shapefile
-        Checks MODIS archive for corrupt or missing files
-          within in the region, timeframe, and datasets specified
-        Checks ERA archive for gaps in timeseries
-          within the timeframe and datasets specified
-
-      Stage 2
-        Constructs array file (hdf5) with dimensions [d,y,x] for each
-        MODIS and ERA dataset
-        * x and y are spatial coordinates in dataset's native projection
-        * d represents index number of modis interval
-        * d=0 is the first modis interval in the timeframe, eg 2000049
-        * hdf5 arrays are subset to the project timeframe and minimum
-          rectangle necessary to completely contain the landcover region (AOI)
 
       Stage 3
         Produce ERA \& MODIS shapefiles from hdf5 subset arrays
