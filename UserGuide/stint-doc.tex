@@ -220,9 +220,6 @@ or overlaps in timesteps.
 
     \item [Explore]
       This stage produces no new data to explore.
-
-    \item [Modules]
-      which modules from Tools are used by this stage?
   \end{description}
   
 \subsubsection{\textbf{Stage 2:} \texttt{\$ python run.py 2}}
@@ -273,19 +270,16 @@ rectangle necessary to completely contain the \texttt{AOI}.
       * R: rhdf5, h5r, or ncdf4 
       
       * matlab: h5disp and h5read
-
-    \item [Modules]
-      which modules from Tools are used by this stage?
   \end{description}
 
 
 \subsubsection{\textbf{Stage 3:} \texttt{\$ python run.py 3}}
-        Produce \texttt{ERA} and \texttt{MODIS} shapefiles from hdf5 subset arrays
-        
-        * Shapefiles are in native projection (Sinusoidal \& WGS84)
-        
-        * consist of a polygon grid, each raster cell represented by
-          rectangle with attributes id,x\_ctr,y\_ctr,x\_ind,y\_ind
+Produce \texttt{ERA} and \texttt{MODIS} shapefiles from hdf5 subset arrays.
+ 
+ The shapefiles consist of a polygon grid, each raster cell represented by
+ rectangle with attribute fields for cell id, cell center coordinates, and grid coordinates which allow cell values to be retrieved from the hdf5 array file.  For example  \texttt{y\_ind} = 0, \texttt{x\_ind} = 0 is the top left cell in the grid.
+ 
+ The spatial reference system of the shapefile geometries as well as the cell center coordinates is the same as the hdf5 from which the grid was derived, \texttt{MODIS} sinusoidal or \texttt{ERA WGS84}.
 
   \begin{description}
     \item [Requires]
@@ -299,21 +293,33 @@ rectangle necessary to completely contain the \texttt{AOI}.
       
 
     \item [Explore]
-      \texttt{<project>\_<modis|era>.shp} are standard ESRI shapefiles that can be explored in any GIS browser.  They should be in the same projection as the original \texttt{ERA} and \texttt{MODIS} datasets; respectively, \texttt{MODIS sinusoidal} and \texttt{WGS84} geographic coordinates.
+      The products of this stage are standard ESRI shapefiles that can be explored in any GIS browser.  Attribute fields and projection of each file are summarized below:
       
-      * attributes that should be present?
+\begin{tabular}{ll}
+       \multicolumn{2}{c}{\texttt{<project>\_modis.shp}} \\
+Spatial reference system        & \texttt{MODIS} sinusoidal projection \\
+\texttt{id}                     & \texttt{MODIS} cell id \\  
+\texttt{x\_ctr},\texttt{y\_ctr} &  (x, y) sinusoidal coordinates, cell center\\
+\texttt{x\_ind},\texttt{y\_ind} & grid coordinate hdf5 array file\\
+\end{tabular}
+      
+\begin{tabular}{ll}
+       \multicolumn{2}{c}{ \texttt{<project>\_era.shp}} \\
+Spatial reference system        & \texttt{WGS84} geographic coordinates \\
+\texttt{id}                     & \texttt{ERA} cell id\\
+\texttt{x\_ctr},\texttt{y\_ctr} & (lon, lat) coordinates, cell center \\ 
+\texttt{x\_ind},\texttt{y\_ind} & grid coordinate hdf5 array file\\
+\end{tabular}
 
-
-    \item [Modules]
-      which modules from Tools are used by this stage?
   \end{description}
 
 
 \subsubsection{\textbf{Stage 4:} \texttt{\$ python run.py 4}}
-        Reproject ERA \& MODIS shapefiles to landcover(aoi) projection
+Transform \texttt{ERA} \& \texttt{MODIS} shapefiles to \texttt{AOI}/landcover spatial reference system.
         
-       
-        Construct spatial rtree index (idx) for each
+Construct r-tree spatial index (\texttt{*.idx}) for each to speed up spatial queries such as the intersection in Stage 5.
+
+Cell center coordinates in the attribute fields \texttt{y\_ctr} and \texttt{y\_ctr} remain in the dataset's original spatial reference system.
 
   \begin{description}
     \item [Requires]
@@ -330,24 +336,33 @@ rectangle necessary to completely contain the \texttt{AOI}.
       
 
     \item [Explore]
-      \texttt{<project>\_<modis|era>\_reprj.shp} are standard ESRI shapefiles that can be explored in any GIS browser.  They should be in the same projection as the \texttt{AOI}/landcover shapefile.
+      The products of this stage are standard ESRI shapefiles that can be explored in any GIS browser.  Attribute fields and projection of each file are summarized below:
       
-      * attributes that should be present?
+\begin{tabular}{ll}
+       \multicolumn{2}{c}{\texttt{<project>\_modis\_reprj.shp}} \\
+Spatial reference system        & Native \texttt{AOI} projection \\
+\texttt{id}                     & \texttt{MODIS} cell id \\  
+\texttt{x\_ctr},\texttt{y\_ctr} & (x, y) sinusoidal coordinates, cell center \\
+\texttt{x\_ind},\texttt{y\_ind} & grid coordinate hdf5 array file\\
+\end{tabular}
+      
+\begin{tabular}{ll}
+       \multicolumn{2}{c}{ \texttt{<project>\_era\_reprj.shp}} \\
+Spatial reference system        & Native \texttt{AOI} projection \\
+\texttt{id}                     & \texttt{ERA} cell id\\
+\texttt{ctr\_x},\texttt{ctr\_y} & (lon, lat) coordinates, cell center \\ 
+\texttt{x\_ind},\texttt{y\_ind} & grid coordinate hdf5 array file\\
+\end{tabular}
 
-    \item [Modules]
-      which modules from Tools are used by this stage?
   \end{description}
 
 
 \subsubsection{\textbf{Stage 5:} \texttt{\$ python run.py 5}}
-        Intersect reprojected climate (ERA) + landcover (aoi) shapefiles
-        to produce lcc.shp
-        
-          * lcc = land cover climate
+Intersect \texttt{AOI}/landcover shapefile with \texttt{<project>\_era\_reprj.shp} to produce landcover/climate shapefile, \texttt{<project>\_lcc.shp}.  Each feature in the intersection product is a unique landcover 
           
-          * attributes specified by lc\_ in INPUT are preserved from aoi
+Attribute fields specified by \texttt{lc\_} in \texttt{INPUT.txt} are preserved from \texttt{AOI}/landcover shapefile.
           
-          * era idx to speed up feature matching
+Takes advantage of \texttt{<project>\_era\_reprj.idx} to speed up intersection.
 
   \begin{description}
     \item [Requires]
@@ -363,12 +378,23 @@ rectangle necessary to completely contain the \texttt{AOI}.
       \texttt{STINT/Processing/SHP/<project>\_lcc.idx}
 
     \item [Explore]
-      \texttt{<project>\_lcc.shp} is a standard ESRI shapefile that can be explored in any GIS browser.  It should be in the same projection as the \texttt{aoi}/landcover shapefile.
+      \texttt{<project>\_lcc.shp} is a standard ESRI shapefile that can be explored in any GIS browser.  Attribute fields and projection are summarized below:
       
-      * attributes that should be present?
+\begin{tabular}{ll}
+       \multicolumn{2}{c}{\texttt{<project>\_lcc.shp}} \\
+Spatial reference system        & Native \texttt{AOI} projection \\
+\texttt{id}                     & lcc cell id \\  
+\texttt{era\_id}                & \texttt{ERA} cell id \\  
+\texttt{era\_ctr\_x},\texttt{era\_ctr\_y} & (lon, lat) coordinates, \texttt{ERA} cell center \\
+\texttt{era\_x\_ind},\texttt{era\_y\_ind} & grid coordinate of matching record \\
+                                          & from \texttt{ERA} hdf5 array file\\
+\\
+\texttt{lc\_id}                & \texttt{AOI}/landcover feature id \\
+\texttt{lc\_*}                & Any attribute fields, such as land type, \\
+                             & selected for preservation \\
+                             & from \texttt{AOI}/landcover shapefile \\
 
-    \item [Modules]
-      which modules from Tools are used by this stage?
+\end{tabular}
   \end{description}
 
 
@@ -401,9 +427,6 @@ rectangle necessary to completely contain the \texttt{AOI}.
       \texttt{<project>\_lcm.shp} is a standard ESRI shapefile that can be explored in any GIS browser.  It should be in the same projection as the \texttt{aoi}/landcover shapefile.
       
       * attributes that should be present?
-
-    \item [Modules]
-      which modules from Tools are used by this stage?
   \end{description}
 
 
@@ -434,9 +457,6 @@ rectangle necessary to completely contain the \texttt{AOI}.
       words
       
       words
-
-    \item [Modules]
-      which modules from Tools are used by this stage?
   \end{description}
 
 
@@ -471,7 +491,12 @@ While I tried hard to write code that catches problems and prints clear messages
     
 \end{enumerate}
 
-Each stage described in Section \ref{stages} includes a list of input files and modules called from \texttt{py-stint/Tools/}, in order to help in tracking down any errors that do arise.
+Each stage described in Section \ref{stages} includes a list of input files in order to help in tracking down any errors that do arise.
+% Could add an item listing modules called from \texttt{py-stint/Tools/}?
+% Could add an item listing potential errors? eg:
+%% loading srs
+%% transforming coordinates between srs
+%% reading gdal formats (MODIS hdf)
 % Commands shifting sections to Appendices, and labelling Appendix as such
 \clearpage
 \section*{Appendix}
