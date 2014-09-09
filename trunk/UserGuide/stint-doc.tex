@@ -8,12 +8,14 @@
 \usepackage{makeidx}
 \usepackage{ifthen}
 \usepackage{enumerate}
+\usepackage{graphicx}
 % ifthen wird vom Bild von N.Beebe gebraucht!
 
 \def\bs{\char'134 } % backslash in \tt font.
 \newcommand{\ie}{i.\,e.,}
 \newcommand{\eg}{e.\,g..}
 \DeclareRobustCommand\cs[1]{\texttt{\char`\\#1}}
+
 
 \title{py-stint: PYthon Spatial/Temporal INtersection Toolset}
 \author{IndEcol @ Norges teknisk-naturvitenskapelige universitet \\
@@ -276,10 +278,10 @@ rectangle necessary to completely contain the \texttt{AOI}.
 \subsubsection{\textbf{Stage 3:} \texttt{\$ python run.py 3}}
 Produce \texttt{ERA} and \texttt{MODIS} shapefiles from hdf5 subset arrays.
  
- The shapefiles consist of a polygon grid, each raster cell represented by
- rectangle with attribute fields for cell id, cell center coordinates, and grid coordinates which allow cell values to be retrieved from the hdf5 array file.  For example  \texttt{y\_ind} = 0, \texttt{x\_ind} = 0 is the top left cell in the grid.
+The shapefiles consist of a polygon grid, each raster cell represented by
+rectangle with attribute fields for cell id, cell center coordinates, and grid coordinates which allow cell values to be retrieved from the hdf5 array file.  For example  \texttt{y\_ind} = 0, \texttt{x\_ind} = 0 is the top left cell in the grid.
  
- The spatial reference system of the shapefile geometries as well as the cell center coordinates is the same as the hdf5 from which the grid was derived, \texttt{MODIS} sinusoidal or \texttt{ERA WGS84}.
+The spatial reference system of the shapefile geometries as well as the cell center coordinates is the same as the hdf5 from which the grid was derived, \texttt{MODIS} sinusoidal or \texttt{ERA WGS84}.
 
   \begin{description}
     \item [Requires]
@@ -569,5 +571,34 @@ Basic modules are included in most installations of python.  Scientific and Geos
      
 \end{description}
 
+
+
+\section{Figures}
+\label{figs}
+\begin{figure}
+\includegraphics{thumbs/aoi}
+\caption{\texttt{aoi.shp}}
+\end{figure}
+
+\begin{figure}
+\includegraphics{thumbs/era}
+\caption{\texttt{<project>\_era[\_reprj].shp}, single raster cell; shaded area represents \texttt{AOI}}
+\end{figure}
+
+\begin{figure}
+\includegraphics{thumbs/aoi}
+\caption{\texttt{lcc.shp}}
+\end{figure}
+
+\begin{figure}
+\includegraphics{thumbs/modis}
+\caption{\texttt{<project>\_modis[\_reprj].shp}, \texttt{8x10} array; shaded area represents \texttt{AOI}}
+\end{figure}
+
+
+\begin{figure}
+\includegraphics{thumbs/lcm}
+\caption{\texttt{lcm.shp}}
+\end{figure}
 
 \end{document}
