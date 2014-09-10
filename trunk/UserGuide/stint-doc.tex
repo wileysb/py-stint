@@ -9,6 +9,8 @@
 \usepackage{ifthen}
 \usepackage{enumerate}
 \usepackage{graphicx}
+\usepackage{caption}
+\usepackage{subcaption}
 % ifthen wird vom Bild von N.Beebe gebraucht!
 
 \def\bs{\char'134 } % backslash in \tt font.
@@ -174,11 +176,11 @@ Python programs given in the workflow guide should be called from the
         \item
             dates within timeframe
         \item
-            tiles identified in Workflow Stage i
+            \texttt{MODIS} tiles which have been identifed within the \texttt{AOI}
         \end{itemize}
     \item
-        Fill out INPUT.ex with actual project parameters, 
-        then save as py\_stint/INPUT.txt
+        Fill out \texttt{INPUT.ex} with actual project parameters, 
+        then save as \texttt{py\_stint/INPUT.txt}
 \end{itemize}
 
 
@@ -226,14 +228,14 @@ or overlaps in timesteps.
   
 \subsubsection{\textbf{Stage 2:} \texttt{\$ python run.py 2}}
 This stage aggregates each \texttt{MODIS} and \texttt{ERA} dataset into
-a single hdf5 array file, with dimensions [time, y, x].
+a single HDF5 array file, with dimensions [time, y, x].
 
 The [time] dimension is shared by \texttt{MODIS} and \texttt{ERA} arrays, each timestep covering one 16-day \texttt{MODIS} observation period.
 
 The spatial dimensions [y,x] are defined by the dataset's 
 native projection (\texttt{MODIS sinusoidal} or \texttt{WGS84} geographic coordinates).
         
-hdf5 arrays are cropped to the project timeframe and the minimum 
+HDF5 arrays are cropped to the project timeframe and the minimum 
 rectangle necessary to completely contain the \texttt{AOI}.
 
 
@@ -251,20 +253,20 @@ rectangle necessary to completely contain the \texttt{AOI}.
   
   
     \item [Produces]
-      \texttt{ERA} and \texttt{MODIS} hdf5 array files, native projections:\\
+      \texttt{ERA} and \texttt{MODIS} HDF5 array files, native projections:\\
       \texttt{STINT/Processing/HDF/<dataset>.hdf5}
       
 
     \item [Explore]
-      The hdf5 array file is probably the richest, most exciting format 
+      The HDF5 array file is probably the richest, most exciting format 
       generated in \texttt{py-stint} processing. Data for a given region 
       and timeframe is stored in a single, compact and efficient format. 
       It has excellent potential for visualization of spatial and temporal 
       trends within albedo and climate datasets. 
       
-      The first tool for exploring hdf5 data will be a python program for
+      The first tool for exploring HDF5 data will be a python program for
        converting individual timesteps to geoTIFF files, which can be 
-       viewed in a desktop GIS browswer.
+       viewed in a desktop GIS browser.
       
       
       * Python: h5py and numpy
@@ -276,12 +278,12 @@ rectangle necessary to completely contain the \texttt{AOI}.
 
 
 \subsubsection{\textbf{Stage 3:} \texttt{\$ python run.py 3}}
-Produce \texttt{ERA} and \texttt{MODIS} shapefiles from hdf5 subset arrays.
+Produce \texttt{ERA} and \texttt{MODIS} shapefiles from HDF5 subset arrays.
  
 The shapefiles consist of a polygon grid, each raster cell represented by
-rectangle with attribute fields for cell id, cell center coordinates, and grid coordinates which allow cell values to be retrieved from the hdf5 array file.  For example  \texttt{y\_ind} = 0, \texttt{x\_ind} = 0 is the top left cell in the grid.
+rectangle with attribute fields for cell id, cell center coordinates, and grid coordinates which allow cell values to be retrieved from the HDF5 array file.  For example  \texttt{y\_ind} = 0, \texttt{x\_ind} = 0 is the top left cell in the grid.
  
-The spatial reference system of the shapefile geometries as well as the cell center coordinates is the same as the hdf5 from which the grid was derived, \texttt{MODIS} sinusoidal or \texttt{ERA WGS84}.
+The spatial reference system of the shapefile geometries as well as the cell center coordinates is the same as the HDF5 from which the grid was derived, \texttt{MODIS} sinusoidal or \texttt{ERA WGS84}.
 
   \begin{description}
     \item [Requires]
@@ -298,19 +300,19 @@ The spatial reference system of the shapefile geometries as well as the cell cen
       The products of this stage are standard ESRI shapefiles that can be explored in any GIS browser.  Attribute fields and projection of each file are summarized below:
       
 \begin{tabular}{ll}
-       \multicolumn{2}{c}{\texttt{<project>\_modis.shp}} \\
+       \multicolumn{2}{c}{\texttt{modis.shp}} \\
 Spatial reference system        & \texttt{MODIS} sinusoidal projection \\
 \texttt{id}                     & \texttt{MODIS} cell id \\  
 \texttt{x\_ctr},\texttt{y\_ctr} &  (x, y) sinusoidal coordinates, cell center\\
-\texttt{x\_ind},\texttt{y\_ind} & grid coordinate hdf5 array file\\
+\texttt{x\_ind},\texttt{y\_ind} & grid coordinate HDF5 array file\\
 \end{tabular}
       
 \begin{tabular}{ll}
-       \multicolumn{2}{c}{ \texttt{<project>\_era.shp}} \\
+       \multicolumn{2}{c}{ \texttt{era.shp}} \\
 Spatial reference system        & \texttt{WGS84} geographic coordinates \\
 \texttt{id}                     & \texttt{ERA} cell id\\
 \texttt{x\_ctr},\texttt{y\_ctr} & (lon, lat) coordinates, cell center \\ 
-\texttt{x\_ind},\texttt{y\_ind} & grid coordinate hdf5 array file\\
+\texttt{x\_ind},\texttt{y\_ind} & grid coordinate HDF5 array file\\
 \end{tabular}
 
   \end{description}
@@ -341,30 +343,30 @@ Cell center coordinates in the attribute fields \texttt{y\_ctr} and \texttt{y\_c
       The products of this stage are standard ESRI shapefiles that can be explored in any GIS browser.  Attribute fields and projection of each file are summarized below:
       
 \begin{tabular}{ll}
-       \multicolumn{2}{c}{\texttt{<project>\_modis\_reprj.shp}} \\
+       \multicolumn{2}{c}{\texttt{modis\_reprj.shp}} \\
 Spatial reference system        & Native \texttt{AOI} projection \\
 \texttt{id}                     & \texttt{MODIS} cell id \\  
-\texttt{x\_ctr},\texttt{y\_ctr} & (x, y) sinusoidal coordinates, cell center \\
-\texttt{x\_ind},\texttt{y\_ind} & grid coordinate hdf5 array file\\
+\texttt{x\_ctr}, \texttt{y\_ctr} & (x, y) sinusoidal coordinates, cell center \\
+\texttt{x\_ind}, \texttt{y\_ind} & grid coordinate HDF5 array file\\
 \end{tabular}
       
 \begin{tabular}{ll}
-       \multicolumn{2}{c}{ \texttt{<project>\_era\_reprj.shp}} \\
+       \multicolumn{2}{c}{ \texttt{era\_reprj.shp}} \\
 Spatial reference system        & Native \texttt{AOI} projection \\
 \texttt{id}                     & \texttt{ERA} cell id\\
-\texttt{ctr\_x},\texttt{ctr\_y} & (lon, lat) coordinates, cell center \\ 
-\texttt{x\_ind},\texttt{y\_ind} & grid coordinate hdf5 array file\\
+\texttt{ctr\_x}, \texttt{ctr\_y} & (lon, lat) coordinates, cell center \\ 
+\texttt{x\_ind}, \texttt{y\_ind} & grid coordinate HDF5 array file\\
 \end{tabular}
 
   \end{description}
 
 
 \subsubsection{\textbf{Stage 5:} \texttt{\$ python run.py 5}}
-Intersect \texttt{AOI}/landcover shapefile with \texttt{<project>\_era\_reprj.shp} to produce landcover/climate shapefile, \texttt{<project>\_lcc.shp}.  Each feature in the intersection product is a unique landcover 
+Intersect \texttt{AOI}/landcover shapefile with \texttt{era\_reprj.shp} to produce landcover/climate shapefile, \texttt{lcc.shp}.  Each feature in the intersection product is wholly within a single ERA climate cell and a single landcover type.
           
 Attribute fields specified by \texttt{lc\_} in \texttt{INPUT.txt} are preserved from \texttt{AOI}/landcover shapefile.
           
-Takes advantage of \texttt{<project>\_era\_reprj.idx} to speed up intersection.
+Takes advantage of \texttt{era\_reprj.idx} to speed up intersection.
 
   \begin{description}
     \item [Requires]
@@ -374,22 +376,22 @@ Takes advantage of \texttt{<project>\_era\_reprj.idx} to speed up intersection.
   
   
     \item [Produces]
-      land cover/climate intersection shapefile with index, 
+      land cover/climate shapefile with index, 
       \texttt{AOI} projection:\\
       \texttt{STINT/Processing/SHP/<project>\_lcc.shp}\\
       \texttt{STINT/Processing/SHP/<project>\_lcc.idx}
 
     \item [Explore]
-      \texttt{<project>\_lcc.shp} is a standard ESRI shapefile that can be explored in any GIS browser.  Attribute fields and projection are summarized below:
+      \texttt{lcc.shp} is a standard ESRI shapefile that can be explored in any GIS browser.  Attribute fields and projection are summarized below:
       
 \begin{tabular}{ll}
-       \multicolumn{2}{c}{\texttt{<project>\_lcc.shp}} \\
+       \multicolumn{2}{c}{\texttt{lcc.shp}} \\
 Spatial reference system        & Native \texttt{AOI} projection \\
 \texttt{id}                     & lcc cell id \\  
 \texttt{era\_id}                & \texttt{ERA} cell id \\  
-\texttt{era\_ctr\_x},\texttt{era\_ctr\_y} & (lon, lat) coordinates, \texttt{ERA} cell center \\
-\texttt{era\_x\_ind},\texttt{era\_y\_ind} & grid coordinate of matching record \\
-                                          & from \texttt{ERA} hdf5 array file\\
+\texttt{era\_ctr\_x}, \texttt{era\_ctr\_y} & (lon, lat) coordinates, \texttt{ERA} cell center \\
+\texttt{era\_x\_ind}, \texttt{era\_y\_ind} & grid coordinate of matching record \\
+                                          & from \texttt{ERA} HDF5 array file\\
 \\
 \texttt{lc\_id}                & \texttt{AOI}/landcover feature id \\
 \texttt{lc\_*}                & Any attribute fields, such as land type, \\
@@ -401,13 +403,15 @@ Spatial reference system        & Native \texttt{AOI} projection \\
 
 
 \subsubsection{\textbf{Stage 6:} \texttt{\$ python run.py 6}}
-        Intersect lcc + reprojected modis shapefiles to produce lcm.shp
+        Intersect \texttt{lcc.shp} with \texttt{modis\_reprj.shp} to produce landcover/climate/modis shapefile, \texttt{lcm.shp}. 
         
-        * lcm = landcover climate modis
+        Each feature in the intersection product is wholly within a single \texttt{MODIS} cell, single \texttt{ERA} climate cell, and a single landcover type. This combination of attribute fields is illustrated in Figure \ref{fig:lcm}.
+          
+Attribute fields from \texttt{lcc.shp} are preserved, as well as additionl fields identifying which MODIS cell each feature belongs to.  Additionally, an Area field describes the size in square meters of each feature in the aoi projection.
+          
+Takes advantage of \texttt{modis\_reprj.idx} to speed up intersection.
         
-        * modis idx to speed up feature matching
-        
-        * lcm.shp is effectively the central product of this workflow, linking
+        \texttt{lcm.shp} is effectively the central product of this workflow,
           breaking each landcover feature into polygons wholly within and
           linked to individual MODIS and ERA cells
 
@@ -419,44 +423,86 @@ Spatial reference system        & Native \texttt{AOI} projection \\
   
   
     \item [Produces]
-      landcover/climate/modis intersection shapefile with index, 
+      landcover/climate/modis shapefile with index, 
       \texttt{AOI} projection:\\
       \texttt{STINT/Processing/SHP/<project>\_lcm.shp}\\
       \texttt{STINT/Processing/SHP/<project>\_lcm.idx}
       
 
     \item [Explore]
-      \texttt{<project>\_lcm.shp} is a standard ESRI shapefile that can be explored in any GIS browser.  Attribute fields and projection are summarized below:
+      \texttt{lcm.shp} is a standard ESRI shapefile that can be explored in any GIS browser.  Attribute fields and projection are summarized below:
       
 \begin{tabular}{ll}
-       \multicolumn{2}{c}{\texttt{<project>\_lcc.shp}} \\
+       \multicolumn{2}{c}{\texttt{lcm.shp}} \\
 Spatial reference system        & Native \texttt{AOI} projection \\
-\texttt{id}                     & lcc cell id \\  
+\texttt{id}                     & lcc cell id \\
+\texttt{area}                   & area of feature in \texttt{AOI} projection, m\textsuperscript{2}\\  
+\\
 \texttt{era\_id}                & \texttt{ERA} cell id \\  
-\texttt{era\_ctr\_x},\texttt{era\_ctr\_y} & (lon, lat) coordinates, \texttt{ERA} cell center \\
-\texttt{era\_x\_ind},\texttt{era\_y\_ind} & grid coordinate of matching record \\
-                                          & from \texttt{ERA} hdf5 array file\\
+\texttt{era\_ctr\_x}, \texttt{era\_ctr\_y} & (lon, lat) coordinates, \texttt{ERA} cell center \\
+\texttt{era\_x\_ind}, \texttt{era\_y\_ind} & grid coordinate of matching record \\
+                                          & from \texttt{ERA} HDF5 array file\\
+\\
+\texttt{mod\_id}                & \texttt{MODIS} cell id \\  
+\texttt{mod\_ctr\_x}, \texttt{mod\_ctr\_y} & (x, y) coordinates, \texttt{MODIS} cell center \\
+\texttt{mod\_x\_ind}, \texttt{mod\_y\_ind} & grid coordinate of matching record \\
+                                          & from \texttt{MODIS} HDF5 array file\\
 \\
 \texttt{lc\_id}                & \texttt{AOI}/landcover feature id \\
 \texttt{lc\_*}                & Any attribute fields, such as land type, \\
                              & selected for preservation \\
                              & from \texttt{AOI}/landcover shapefile \\
 \end{tabular}
+
+\begin{figure}
+\label{fig:lcm}
+        \centering
+        \begin{subfigure}[b]{0.3\textwidth}
+                \includegraphics[width=\textwidth]{thumbs/lcm_modis}
+                \caption{\texttt{MODIS} id}
+                \label{fig:lcm-mod}
+        \end{subfigure}
+        ~ 
+        \begin{subfigure}[b]{0.3\textwidth}
+                \includegraphics[width=\textwidth]{thumbs/lcm_landcover}
+                \caption{Landcover}
+                \label{fig:lcm-landcover}
+        \end{subfigure}
+        ~ 
+        \begin{subfigure}[b]{0.3\textwidth}
+        
+                \includegraphics[width=\textwidth]{thumbs/lcm_era}
+                \caption{\texttt{ERA} id}
+                \label{fig:lcm-era}
+        \end{subfigure}
+       
+        \caption{\texttt{lcm.shp}, shaded by different attribute fields}\label{fig:lcm}
+\end{figure}
   \end{description}
 
 
 
 \subsubsection{\textbf{Stage 7:} \texttt{\$ python run.py 7}}
-      lcm.shp used as guide to export modis and era timeseries to CSV
-      
-        * lc.csv: each row is a landcover feature with MODIS and ERA links
-        
-        * MODIS and ERA dataset csvs: each row is a full timeseries for an
-          individual cell
-          
-        * datasets with more than 20k landcover features are broken up into
-          regions made up of 50 MODIS cells
+  This stage exports a CSV spreadsheet file for each 
+  \texttt{MODIS} and \texttt{ERA} dataset, 
+  corresponding to the HDF5 array files, 
+  as well as an additional landcover CSV which gives the area of each feature in 
+  \texttt{lcm.shp} and links the feature to the corresponding 
+  \texttt{MODIS} and \texttt{ERA} rows 
+  (each row representing one raster cell across time)
+  
+  The CSV system is basically a two dimensional representation of the 
+  HDF5 array files combined with \texttt{lcm.shp}.  Each row in \texttt{lc.csv} 
+  represents a single feature in \texttt{lcm.shp}, with landcover attributes 
+  as well as the \texttt{MODIS\_id} and \texttt{ERA\_id} linked to the feature.
 
+  Each \texttt{MODIS} and \texttt{ERA} cell identified in \texttt{lcm.shp}
+  is represented as a row within 
+  each of the respective dataset CSV files, with columns corresponding to \texttt{MODIS} 
+  intervals within the timeframe specified.
+  
+%  For projects with more than 20k landcover features, the exported CSVs are broken up into regions, each made up of 50 \texttt{MODIS} cells.  In this case, the filename is structured as \texttt{<project>\_<dataset>\_<region\_number>.csv}
+  
   \begin{description}
     \item [Requires]
       \texttt{AOI}/landcover shapefile \\
@@ -466,16 +512,18 @@ Spatial reference system        & Native \texttt{AOI} projection \\
   
     \item [Produces]
       \texttt{STINT/Output/CSV/<project>\_lc.csv} \\
-      \texttt{STINT/Output/CSV/<project>\_<dataset>.csv} \\
+      \texttt{STINT/Output/CSV/<project>\_<dataset>.csv}
       
-
     \item [Explore]
-      words
-      
-      words
+\texttt{lc.csv}: each row is a landcover feature with \texttt{MODIS} and \texttt{ERA} links
+        
+\texttt{MODIS} and \texttt{ERA} dataset CSVs: each row is a full timeseries for an
+          individual cell identified within \texttt{lcm.shp}.
+          
   \end{description}
 
 
+%\clearpage
 \subsection{Troubleshooting}
 While I tried hard to write code that catches problems and prints clear messages describing the nature of the error, there may be situations where unclear errors slip through.  If such errors emerge while running \texttt{py-stint}, they will probably come in one of the following flavors:
 \begin{enumerate}
@@ -513,6 +561,9 @@ Each stage described in Section \ref{stages} includes a list of input files in o
 %% loading srs
 %% transforming coordinates between srs
 %% reading gdal formats (MODIS hdf)
+
+
+
 % Commands shifting sections to Appendices, and labelling Appendix as such
 \clearpage
 \section*{Appendix}
@@ -584,26 +635,6 @@ Basic modules are included in most installations of python.  Scientific and Geos
         gdal+ogr+osr, rtree
      
 \end{description}
-
-
-%\newpage
-\section{Figures}
-\label{figs}
-
-\begin{figure}
-\includegraphics{thumbs/lcm_landcover}
-\caption{\texttt{lcm.shp}, colored by landcover type}
-\end{figure}
-
-\begin{figure}
-\includegraphics{thumbs/lcm_era}
-\caption{\texttt{lcm.shp}, colored by \texttt{ERA} id}
-\end{figure}
-
-\begin{figure}
-\includegraphics{thumbs/lcm_modis}
-\caption{\texttt{lcm.shp}, colored by \texttt{MODIS} id}
-\end{figure}
 
 
 \end{document}
