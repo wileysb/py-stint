@@ -426,10 +426,24 @@ Spatial reference system        & Native \texttt{AOI} projection \\
       
 
     \item [Explore]
-      \texttt{<project>\_lcm.shp} is a standard ESRI shapefile that can be explored in any GIS browser.  It should be in the same projection as the \texttt{aoi}/landcover shapefile.
+      \texttt{<project>\_lcm.shp} is a standard ESRI shapefile that can be explored in any GIS browser.  Attribute fields and projection are summarized below:
       
-      * attributes that should be present?
+\begin{tabular}{ll}
+       \multicolumn{2}{c}{\texttt{<project>\_lcc.shp}} \\
+Spatial reference system        & Native \texttt{AOI} projection \\
+\texttt{id}                     & lcc cell id \\  
+\texttt{era\_id}                & \texttt{ERA} cell id \\  
+\texttt{era\_ctr\_x},\texttt{era\_ctr\_y} & (lon, lat) coordinates, \texttt{ERA} cell center \\
+\texttt{era\_x\_ind},\texttt{era\_y\_ind} & grid coordinate of matching record \\
+                                          & from \texttt{ERA} hdf5 array file\\
+\\
+\texttt{lc\_id}                & \texttt{AOI}/landcover feature id \\
+\texttt{lc\_*}                & Any attribute fields, such as land type, \\
+                             & selected for preservation \\
+                             & from \texttt{AOI}/landcover shapefile \\
+\end{tabular}
   \end{description}
+
 
 
 \subsubsection{\textbf{Stage 7:} \texttt{\$ python run.py 7}}
@@ -572,9 +586,25 @@ Basic modules are included in most installations of python.  Scientific and Geos
 \end{description}
 
 
-
+%\newpage
 \section{Figures}
 \label{figs}
+
+\begin{figure}
+\includegraphics{thumbs/lcm_landcover}
+\caption{\texttt{lcm.shp}, colored by landcover type}
+\end{figure}
+
+\begin{figure}
+\includegraphics{thumbs/lcm_era}
+\caption{\texttt{lcm.shp}, colored by \texttt{ERA} id}
+\end{figure}
+
+\begin{figure}
+\includegraphics{thumbs/lcm_modis}
+\caption{\texttt{lcm.shp}, colored by \texttt{MODIS} id}
+\end{figure}
+
 \begin{figure}
 \includegraphics{thumbs/aoi}
 \caption{\texttt{aoi.shp}}
