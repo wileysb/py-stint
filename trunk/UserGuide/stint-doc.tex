@@ -22,7 +22,7 @@
 \title{py-stint: PYthon Spatial/Temporal INtersection Toolset}
 \author{IndEcol @ Norges teknisk-naturvitenskapelige universitet \\
 Wiley Bogren \\
-2014-09-05   \\
+2014-09-11   \\
 --- Version 1.1}
 
 \date{}
@@ -187,7 +187,8 @@ Python programs given in the workflow guide should be called from the
 \subsection{Processing}
 \label{stages}
 After completing the setup, execute each of the 7 processing stages 
-consecutively via the command line.
+consecutively via the command line.  Each stage needs to execute successfully
+before the next stage can run, but nothing else needs to be done in between stages.
 
 \subsubsection{\textbf{Stage 1:} \texttt{\$ python run.py 1}}
 The stage begins by parsing project parameters from \texttt{INPUT.txt}, 
@@ -211,16 +212,15 @@ or overlaps in timesteps.
           \texttt{MODIS\_archive} \\
           \texttt{ERA\_archive} \\
           \texttt{MODIS\_tiles.shp}
-      
-  
-  
+
+
     \item [Produces]
       Prints a report on any issues found in the 
       \texttt{MODIS} or \texttt{ERA} archives.
       
       Creates subdirectories within the \texttt{STINT/} directory, 
       if they are not already present.
-      
+
 
     \item [Explore]
       This stage produces no new data to explore.
@@ -485,11 +485,10 @@ Spatial reference system        & Native \texttt{AOI} projection \\
 \subsubsection{\textbf{Stage 7:} \texttt{\$ python run.py 7}}
   This stage exports a CSV spreadsheet file for each 
   \texttt{MODIS} and \texttt{ERA} dataset, 
-  corresponding to the HDF5 array files, 
-  as well as an additional landcover CSV which gives the area of each feature in 
+  corresponding to the HDF5 array files.  It then exports a landcover CSV 
+  which gives the area and landcover attributes of each feature in 
   \texttt{lcm.shp} and links the feature to the corresponding 
-  \texttt{MODIS} and \texttt{ERA} rows 
-  (each row representing one raster cell across time)
+  \texttt{MODIS} and \texttt{ERA} rows. 
   
   The CSV system is basically a two dimensional representation of the 
   HDF5 array files combined with \texttt{lcm.shp}.  Each row in \texttt{lc.csv} 
@@ -561,6 +560,10 @@ Each stage described in Section \ref{stages} includes a list of input files in o
 %% loading srs
 %% transforming coordinates between srs
 %% reading gdal formats (MODIS hdf)
+
+% Sections describing how to tell if a stage has executed completely? What to look for in a product to indicate that it is complete?
+%% eg if lcc does not share precise extents with aoi, the ERA HDF5 subset might be incomplete
+%% subsequently if lcm does not share extents with aoi, the MODIS HDF5 subset might be incomplete
 
 
 
