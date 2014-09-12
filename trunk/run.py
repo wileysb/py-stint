@@ -168,26 +168,19 @@ def Load_params(input_fn):
         sys.exit( 1 )
 
     ### DEFINE AND RESOLVE HDF DIRECTORY
-    processing_dir = os.path.join(project['prj_directory'],'Processing/')
-    hdf_dir = os.path.join(processing_dir,'HDF/')
-    prj_mkdir(processing_dir)
-
+    hdf_dir = os.path.join(project['prj_directory'],'HDF/')
     prj_mkdir(hdf_dir)
 
     ## DEFINE AND RESOLVE SHP DIRECTORY
-    shp_dir = os.path.join(processing_dir,'SHP/')
+    shp_dir = os.path.join(project['prj_directory'],'SHP/')
     prj_mkdir(shp_dir)
 
     ## DEFINE AND RESOLVE TIF DIRECTORY
-    tif_dir = os.path.join(processing_dir,'TIF/')
+    tif_dir = os.path.join(project['prj_directory'],'TIF/')
     prj_mkdir(tif_dir)
 
-    ## DEFINE AND RESOLVE OUTPUT DIRECTORY
-    out_dir = os.path.join(project['prj_directory'],'Output/')
-    prj_mkdir(out_dir)
-
     ## DEFINE AND RESOLVE CSV OUTPUT DIRECTORY
-    csv_dir = os.path.join(out_dir,'CSV/')
+    csv_dir = os.path.join(project['prj_directory'],'CSV/')
     prj_mkdir(csv_dir)
 
     # Expand 'project' dictionary
@@ -195,7 +188,6 @@ def Load_params(input_fn):
     project['hdf_dir'] = hdf_dir
     project['shp_dir'] = shp_dir
     project['tif_dir'] = tif_dir
-    project['out_dir'] = out_dir
     project['csv_dir'] = csv_dir
 
     try:

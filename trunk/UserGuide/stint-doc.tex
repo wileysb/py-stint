@@ -287,13 +287,13 @@ The spatial reference system of the shapefile geometries as well as the cell cen
 
   \begin{description}
     \item [Requires]
-          \texttt{STINT/Processing/HDF/<project>\_<dataset>.hdf5}
+          \texttt{STINT/HDF/<project>\_<dataset>.hdf5}
   
   
     \item [Produces]
       \texttt{ERA} and \texttt{MODIS} shapefiles, native projections:\\
-      \texttt{STINT/Processing/SHP/<project>\_era.shp} \\
-      \texttt{STINT/Processing/SHP/<project>\_modis.shp} 
+      \texttt{STINT/SHP/<project>\_era.shp} \\
+      \texttt{STINT/SHP/<project>\_modis.shp} 
       
 
     \item [Explore]
@@ -327,16 +327,16 @@ Cell center coordinates in the attribute fields \texttt{y\_ctr} and \texttt{y\_c
 
   \begin{description}
     \item [Requires]
-      \texttt{STINT/Processing/SHP/<project>\_era.shp}\\
-      \texttt{STINT/Processing/SHP/<project>\_modis.shp}
+      \texttt{STINT/SHP/<project>\_era.shp}\\
+      \texttt{STINT/SHP/<project>\_modis.shp}
   
     \item [Produces]
       \texttt{ERA} and \texttt{MODIS} shapefiles with index, 
       \texttt{AOI} projections:\\ 
-      \texttt{STINT/Processing/SHP/<project>\_era\_reprj.shp}\\
-      \texttt{STINT/Processing/SHP/<project>\_era\_reprj.idx}\\
-      \texttt{STINT/Processing/SHP/<project>\_modis\_reprj.shp}\\
-      \texttt{STINT/Processing/SHP/<project>\_modis\_reprj.idx}      
+      \texttt{STINT/SHP/<project>\_era\_reprj.shp}\\
+      \texttt{STINT/SHP/<project>\_era\_reprj.idx}\\
+      \texttt{STINT/SHP/<project>\_modis\_reprj.shp}\\
+      \texttt{STINT/SHP/<project>\_modis\_reprj.idx}      
       
 
     \item [Explore]
@@ -371,15 +371,15 @@ Takes advantage of \texttt{era\_reprj.idx} to speed up intersection.
   \begin{description}
     \item [Requires]
       \texttt{AOI}/landcover shapefile\\
-      \texttt{STINT/Processing/SHP/<project>\_era\_reprj.shp}\\
-      \texttt{STINT/Processing/SHP/<project>\_era\_reprj.idx}  
+      \texttt{STINT/SHP/<project>\_era\_reprj.shp}\\
+      \texttt{STINT/SHP/<project>\_era\_reprj.idx}  
   
   
     \item [Produces]
       land cover/climate shapefile with index, 
       \texttt{AOI} projection:\\
-      \texttt{STINT/Processing/SHP/<project>\_lcc.shp}\\
-      \texttt{STINT/Processing/SHP/<project>\_lcc.idx}
+      \texttt{STINT/SHP/<project>\_lcc.shp}\\
+      \texttt{STINT/SHP/<project>\_lcc.idx}
 
     \item [Explore]
       \texttt{lcc.shp} is a standard ESRI shapefile that can be explored in any GIS browser.  Attribute fields and projection are summarized below:
@@ -417,16 +417,16 @@ Takes advantage of \texttt{modis\_reprj.idx} to speed up intersection.
 
   \begin{description}
     \item [Requires]
-      \texttt{STINT/Processing/SHP/<project>\_modis\_reprj.shp} \\
-      \texttt{STINT/Processing/SHP/<project>\_modis\_reprj.idx} \\
-      \texttt{STINT/Processing/SHP/<project>\_lcc.shp}
+      \texttt{STINT/SHP/<project>\_modis\_reprj.shp} \\
+      \texttt{STINT/SHP/<project>\_modis\_reprj.idx} \\
+      \texttt{STINT/SHP/<project>\_lcc.shp}
   
   
     \item [Produces]
       landcover/climate/modis shapefile with index, 
       \texttt{AOI} projection:\\
-      \texttt{STINT/Processing/SHP/<project>\_lcm.shp}\\
-      \texttt{STINT/Processing/SHP/<project>\_lcm.idx}
+      \texttt{STINT/SHP/<project>\_lcm.shp}\\
+      \texttt{STINT/SHP/<project>\_lcm.idx}
       
 
     \item [Explore]
@@ -505,13 +505,13 @@ Spatial reference system        & Native \texttt{AOI} projection \\
   \begin{description}
     \item [Requires]
       \texttt{AOI}/landcover shapefile \\
-      \texttt{STINT/Processing/HDF/<project>\_<dataset>.hdf5} \\
-      \texttt{STINT/Processing/SHP/<project>\_lcm.shp}
+      \texttt{STINT/HDF/<project>\_<dataset>.hdf5} \\
+      \texttt{STINT/SHP/<project>\_lcm.shp}
   
   
     \item [Produces]
-      \texttt{STINT/Output/CSV/<project>\_lc.csv} \\
-      \texttt{STINT/Output/CSV/<project>\_<dataset>.csv}
+      \texttt{STINT/CSV/<project>\_lc.csv} \\
+      \texttt{STINT/CSV/<project>\_<dataset>.csv}
       
     \item [Explore]
 \texttt{lc.csv}: each row is a landcover feature with \texttt{MODIS} and \texttt{ERA} links

@@ -1,13 +1,14 @@
-i) Rewrite MODIS_subsetter.Get_modis_md:
-   just grab first file in directory,
-   rather than requiring modis_day
-ii) add progress % to csv output
-iii) implement $python run.py test >
+i) Implement the 50-cells-per-file output
+ii) Rewrite MODIS_subsetter.Get_modis_md:
+    just grab first file in directory,
+    rather than requiring modis_day
+iii) add progress % to csv output
+iv)   implement $python run.py test >
 
-1) Implement raslc2csv
-2) Explore faster Land2csv through indexing dbf attributes
-3) Implement MODIS archiving functions, and archive repair
-4) hdf5 viewer for visualizing hdf raster timeseries
+1) hdf5 viewer for visualizing hdf raster timeseries
+2) Implement raslc2csv
+3) Explore faster Land2csv through indexing dbf attributes
+4) Implement MODIS archiving functions, and archive repair
 4a) Start by debugging hdf5_to_tif
 4b) Then, maybe more advanced GUI viewer ?
  
