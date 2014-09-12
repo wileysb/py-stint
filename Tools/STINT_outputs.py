@@ -41,7 +41,6 @@ def Unique_values(src_dsn,field):
     #driver = ogr.GetDriverByName("GeoJSON")
     #inFile = driver.Open(f,0)
     inFile = ogr.Open(src_dsn+'.shp',gdalconst.GA_ReadOnly)
-    layer  = inFile.GetLayer()
     src_fn = os.path.split(src_dsn)[-1]
 
     uniqueValues = "select distinct " + field + " from " + src_fn
@@ -58,6 +57,8 @@ def Unique_values(src_dsn,field):
 
         resultFeat = result.GetNextFeature()
 
+
+    uniqueFieldList.sort()
     return uniqueFieldList
 
 
@@ -138,6 +139,9 @@ def Veclc2csv( project ):
     lcm_sz  = lcm_lyr.GetFeatureCount()
     del lcm_ds,lcm_lyr
     if lcm_sz > 20000:
+        # How many times does 50 go into len(mod_id_list)?
+        # make this many files!
+        # make land and modis 2csv take opt 'region' value and incorporate into out_fn
         TODO = 'Split up output files'
         # Split mod_ids into groups of 50
         # for each group of 50, open new outfile_number
