@@ -1,27 +1,28 @@
 # PROJECT INFO #########################################################
 start_year      = 06   # starts 1 January, 20YY (late Feb if '00)
 end_year        = 07   # runs through 31 December, 20YY
-
+# mod_per_region  = 500
+# lcm_thresh      = 10000
 
 # PATHS  ###############################################################
-aoi           = /home/wiley/wrk/Landcover/valtst_clc06.shp
+aoi           = /home/wiley/wrk/Landcover/clc06_ika_0711_K3.shp
 modis_tile_fn = /home/wiley/wrk/py-stint/Tools/Data/MODIS_tiles.shp
-prj_name      = valtst
-prj_directory = /home/wiley/wrk/STINT/tst/
+prj_name      = suomiK3
+prj_directory = /home/wiley/wrk/STINT/suomiK3/
 modis_dir     = /media/wiley/Elements/MODIS_ARCHIVE/
 era_dir       = /media/wiley/Elements/CLIMATE/ERA/
 
 
 # ERA datasets #########################################################
 # short_name  = file1,file2,file3 ( in order of dates contained )      #
-sd            = snowdepth_Jan2000_Dec2006.nc, snowdepth_Jan2007_Dec2013.nc
+#sd            = snowdepth_Jan2000_Dec2006.nc, snowdepth_Jan2007_Dec2013.nc
 t2m           = T2m_Feb2000_Dec2004.nc, T2m_Jan2005_Dec2008.nc, T2m_Jan2009_Dec2013.nc
 
 
 # MODIS datasets #######################################################
 # dset   =  dnum:short_name,  dnum:short_name,  dnum:short_name          #
 MCD43A2  =     0:BSA_quality,  # 2:BSA_ancill,    3:BSA_band
-#MCD43A3  =     7:BSA_vis,       8:BSA_nir,       9:BSA_sw
+MCD43A3  =     7:BSA_vis,   #    8:BSA_nir,       9:BSA_sw
 #MOD10A2  =     0:mse,           1:dsc
 
 

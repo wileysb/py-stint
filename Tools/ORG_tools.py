@@ -22,7 +22,7 @@
 #
 ##################################################################
 '''Module containing file parsing and date transformation functions.'''
-import os,ogr,osr,gdal,gdalconst,sys
+import os,ogr,osr,gdal,gdalconst,sys,math
 import datetime as dt
 import numpy as np
 
@@ -267,3 +267,21 @@ def Daynum2date(daynum, basedatestr):
     out = basedate + dt.timedelta(days=daynum)
     out_string = dt.datetime.strftime(out, datestr_fmt)
     return out_string
+
+
+
+class Countdown:
+    def __init__(self,count_max,interval=0.05):
+        self.interval  = float(interval)
+        self.count_max = float(count_max)
+        self.count_update = self.count_max * self.interval # print progress every 5%!
+
+    def check(self,val):
+        if int( math.fmod( val, self.count_update ) ) == 0:
+            prog = int( float(val) / self.count_max * 100 )
+            report = '%s%% . ' % prog
+            sys.stdout.write( report )
+            sys.stdout.flush()
+
+    def flush(self):
+        sys.stdout.write("100% \n")

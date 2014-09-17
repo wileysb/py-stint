@@ -23,9 +23,10 @@
 ##################################################################
 __author__ = 'wiley'
 
-import os,cPickle,csv
+import os,sys,cPickle,csv,math
 import ogr,gdalconst,h5py
 import numpy as np
+from ORG_tools import Countdown
 
 
 def Unique_values(src_dsn,field):
@@ -91,6 +92,7 @@ def Veclc2csv( project ):
     era_id_list = Unique_values( lcm_path,"era_id")
     era_ind_list= []
     ind_sql_ = 'SELECT era_x_ind,era_y_ind FROM %s WHERE era_id=%i'
+    print 'Summarizing %s ERA cells from lcm' % len(era_id_list)
     for era_id in era_id_list:
         ind_sql = ind_sql_ % (lcm_dsn, era_id)
         ind_lyr = lcm_ds.ExecuteSQL(ind_sql)
@@ -115,7 +117,10 @@ def Veclc2csv( project ):
     mod_ind_list= []
     ind_sql_ = 'SELECT mod_x_ind,mod_y_ind FROM %s WHERE mod_id=%i'
     mod_sql_ = 'SELECT ctr_x,ctr_y FROM %s WHERE id=%i'
-    for mod_id in mod_id_list:
+    print 'Summarizing %s MODIS cells from lcm' % len(mod_id_list)
+    progress_bar = Countdown(len(mod_id_list))
+    for i in range(len(mod_id_list)):
+        mod_id = mod_id_list[i]
         ind_sql = ind_sql_ % (lcm_dsn, mod_id)
         mod_sql = mod_sql_ % (mod_dsn, mod_id)
         ind_lyr = lcm_ds.ExecuteSQL(ind_sql)
@@ -130,6 +135,9 @@ def Veclc2csv( project ):
         mod_area  = geom.Area()
 
         mod_ind_list.append((mod_id,mod_x_ind,mod_y_ind,mod_area))
+        progress_bar.check(i)
+
+    progress_bar.flush()
 
     del lcm_ds,ind_lyr
 
@@ -138,18 +146,66 @@ def Veclc2csv( project ):
     lcm_lyr = lcm_ds.GetLayer(0)
     lcm_sz  = lcm_lyr.GetFeatureCount()
     del lcm_ds,lcm_lyr
-    if lcm_sz > 20000:
-        # How many times does 50 go into len(mod_id_list)?
-        # make this many files!
-        # make land and modis 2csv take opt 'region' value and incorporate into out_fn
-        TODO = 'Split up output files'
-        # Split mod_ids into groups of 50
-        # for each group of 50, open new outfile_number
+
+    ## Get lcm_thresh and mod_per_region from project, or set default:
+    if 'lcm_thresh' in project.keys():
+        try:
+            lcm_thresh = int(project['lcm_thresh'])
+        except:
+            'lcm_thresh not an integer (INPUT.txt)'
+            lcm_thresh = 20000
     else:
+        lcm_thresh = 20000
+
+    if 'mod_per_region' in project.keys():
+        mod_per_candidate = project['mod_per_region']
+        try:
+            mod_per_reg = float(mod_per_candidate)
+        except:
+            mod_default = 50.
+            print 'mod_per_region not an integer (INPUT.txt)'
+            print 'assigning default %s modis IDs per region' % mod_default
+            mod_per_reg = float(mod_default)
+    else:
+        mod_default = 50.
+        mod_per_reg = float(mod_default)
+
+    if lcm_sz > lcm_thresh:
+        # How many times does mod_per_reg go into len(mod_id) ?
+        num_reg = int(math.ceil(len(mod_id_list)/mod_per_reg))
+        modr = (num_reg,int(mod_per_reg))
+        print 'Splitting CSVs into %s regions, %s MODIS cells each' % modr
+
+        # For each region, export one set of CSV files
+        # for the modis ids within that region
+        progress_bar = Countdown(num_reg)
+        for region in range(num_reg):
+            s = int(region * mod_per_reg)
+            e = int((region+1) * mod_per_reg)
+            if e>=len(mod_ind_list):
+                e=-1
+            region_mod_ind = mod_ind_list[s:e]
+            Land2csv( project, region_mod_ind, region=region )
+            for mod_type in project['modis'].keys():
+                for modis_sds in project['modis'][mod_type].values():
+                    Mod2csv(project, modis_sds, region_mod_ind, region=region)
+            progress_bar.check(region)
+        progress_bar.flush()
+
+
+    else:
+        print 'Writing out to 1 CSV per dataset:'
+        sys.stdout.write("lc.csv: ")
+        sys.stdout.flush()
         Land2csv( project, mod_ind_list )
         for mod_type in project['modis'].keys():
             for modis_sds in project['modis'][mod_type].values():
+                sys.stdout.write("%s.csv . " % modis_sds)
+                sys.stdout.flush()
                 Mod2csv(project, modis_sds, mod_ind_list)
+
+        sys.stdout.write("Done \n")
+        sys.stdout.flush()
 
 
 def Raslc2csv( project, ras_lcm):
@@ -166,7 +222,7 @@ def Land2csv(project, mod_ind_list, region = None):
     lcm_dsn  = project['prj_name']+'_lcm'
     lcm_path = os.path.join(project['shp_dir'],lcm_dsn)
     lcm_ds  = ogr.Open(lcm_path+'.shp',gdalconst.GA_ReadOnly)
-    if not region:
+    if region==None:
         lc_csv_fn = os.path.join(project['csv_dir'],
                                  project['prj_name']+'_lc.csv')
     else:
@@ -190,8 +246,11 @@ def Land2csv(project, mod_ind_list, region = None):
 
     lc_sql_ = 'SELECT id,area,lc_id,mod_id,era_id'+lc_attrs+' FROM '+lcm_dsn+\
               ' WHERE mod_id=%i'
-    for mod_ind in mod_ind_list:
-        mod_id = mod_ind[0]
+
+    if region==None:
+        progress_bar = Countdown(len(mod_ind_list))
+    for i in range(len(mod_ind_list)):
+        mod_id = mod_ind_list[i][0]
         lc_sql = lc_sql_ % mod_id
         lc_lyr = lcm_ds.ExecuteSQL(lc_sql)
         lc_feat= lc_lyr.GetNextFeature()
@@ -207,8 +266,12 @@ def Land2csv(project, mod_ind_list, region = None):
                     out.append(lc_feat.GetField(attrib))
             lc_csv.writerow(out)
             lc_feat = lc_lyr.GetNextFeature()
+        if region==None:
+            progress_bar.check(i)
 
     del lcm_ds
+    if region==None:
+        progress_bar.flush()
     lc_csv_f.close()
 
 
@@ -224,7 +287,7 @@ def Mod2csv(project,mod_sds,mod_ind_list, region = None):
         lc_csv_fn = os.path.join(out_dir,
                                  project['prj_name']+'_lc_'+str(region)+'.csv')
     '''
-    if not region:
+    if region==None:
         mod_csv_fn = os.path.join(project['csv_dir'],
                      project['prj_name']+'_'+mod_sds+'.csv')
     else:

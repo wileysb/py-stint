@@ -27,6 +27,7 @@
 import os,sys,math,cPickle,sys
 import rtree,ogr,osr,gdalconst
 import numpy as np
+from ORG_tools import Countdown
 
 class FastRtree(rtree.Rtree):
     '''Accelerate Rtree implementation by using cPickle.'''
@@ -75,7 +76,8 @@ def Reprj_and_idx( src_dsn, dst_dsn, dst_srs, fields ):
 
     # Initialize progress updater
     count_max    = float(src_lyr.GetFeatureCount())
-    count_update = count_max * 0.05 # print progress every 5%!
+    # count_update = count_max * 0.05 # print progress every 5%!
+    progress_bar = Countdown(count_max)
 
     for fid in range(0,src_lyr.GetFeatureCount()):
         src_feat = src_lyr.GetFeature(fid)
@@ -98,13 +100,15 @@ def Reprj_and_idx( src_dsn, dst_dsn, dst_srs, fields ):
         dst_lyr.CreateFeature(dst_feat)
         dst_feat = geom = None
         # Print progress:
-        if int( math.fmod( fid, count_update ) ) == 0:
-            prog = int( fid / count_max * 100 )
-            report = '%s%% . . ' % prog
-            sys.stdout.write( report )
-            sys.stdout.flush()
-    
-    sys.stdout.write("\n")
+        progress_bar.check(fid)
+        #if int( math.fmod( fid, count_update ) ) == 0:
+        #    prog = int( fid / count_max * 100 )
+        #    report = '%s%% . . ' % prog
+        #   sys.stdout.write( report )
+        #    sys.stdout.flush()
+
+    progress_bar.flush()
+    #sys.stdout.write("\n")
     dst_prj = dst_srs.ExportToWkt()
     Mk_proj(dst_prj,dst_dsn)
     # Close, flush, save output files
@@ -226,8 +230,9 @@ def Isect_poly_idx( src1_dsn, src1_pre, src1_id, src1_fields, area,
     
     # Initialize progress updater
     count_max    = float(src_lyr1.GetFeatureCount())
-    count_update = count_max * 0.05 # print progress every 5%!
-    
+    # count_update = count_max * 0.05 # print progress every 5%!
+    progress_bar = Countdown(count_max)
+
     # Loop through features in src1
     for fid1 in range(0,src_lyr1.GetFeatureCount()):
         src_feat1 = src_lyr1.GetFeature(fid1)
@@ -265,13 +270,15 @@ def Isect_poly_idx( src1_dsn, src1_pre, src1_id, src1_fields, area,
                 dst_feat = isect = None
                 idVar+=1
         # Print progress:
-        if int( math.fmod( fid1, count_update ) ) == 0:
-            prog = int( fid1 / count_max * 100 )
-            report = '%s%% . ' % prog
-            sys.stdout.write( report )
-            sys.stdout.flush()
+        progress_bar.check(fid1)
+        #if int( math.fmod( fid1, count_update ) ) == 0:
+        #    prog = int( fid1 / count_max * 100 )
+        #   report = '%s%% . ' % prog
+        #   sys.stdout.write( report )
+        #    sys.stdout.flush()
 
-    sys.stdout.write("\n")
+    #sys.stdout.write("\n")
+    progress_bar.flush()
     dst_r.close()
     dst_r = dst_ds = dst_lyr = dst_feat = isect = defn = None
     dst_prj = srs.ExportToWkt()
@@ -336,8 +343,9 @@ def Isect_ras_poly(ras_fn,poly_dsn,dst_p):
     
     # Initialize progress updater
     count_max    = float(poly_lyr.GetFeatureCount())
-    count_update = count_max * 0.05 # print progress every 5%!
-    
+    # count_update = count_max * 0.05 # print progress every 5%!
+    progress_bar = Countdown(count_max)
+
     for fid in range(0,poly_lyr.GetFeatureCount()):
         # out[fid] = [[within],[intersecting]]
         # within   = [x,y], x,y in raster coordinates (ncol,nrow)
@@ -383,11 +391,13 @@ def Isect_ras_poly(ras_fn,poly_dsn,dst_p):
                 jnk = out.pop(fid)
             
         # Print progress:
-        if int( math.fmod( fid, count_update ) ) == 0:
-            prog = int( fid / count_max * 100 )
-            toprint = '%s%% . . ' % prog
-            print toprint
-    
+        progress_bar.check(fid)
+        #if int( math.fmod( fid, count_update ) ) == 0:
+        #    prog = int( fid / count_max * 100 )
+        #    toprint = '%s%% . . ' % prog
+        #    print toprint
+
+    progress_bar.flush()
     cPickle.dump(out,open(dst_p,'w'))
     
 
@@ -528,7 +538,8 @@ def Mk_polygrid(params):
     progVar = 0
     count        = 0
     count_max    = (ymax-ymin) / dy
-    count_update = count_max * 0.05 # print progress every 5%!
+    # count_update = count_max * 0.05 # print progress every 5%!
+    progress_bar = Countdown(count_max)
 
     y = ymax
     y_ind = 0
@@ -562,15 +573,17 @@ def Mk_polygrid(params):
         y -= dy
         y_ind+=1
         count += 1
-        if int( math.fmod( count, count_update ) ) == 0:
-            prog = int( count / count_max * 100 )
-            report = '%s%% . . ' % prog
-            sys.stdout.write( report )
-            sys.stdout.flush()
+        progress_bar.check(count)
+        #if int( math.fmod( count, count_update ) ) == 0:
+        #    prog = int( count / count_max * 100 )
+        #   report = '%s%% . . ' % prog
+        #   sys.stdout.write( report )
+        #    sys.stdout.flush()
     
     # Save and close everything
     ds = layer = feat = perim = polygon = None
-    sys.stdout.write("\n")
+    # sys.stdout.write("\n")
+    progress_bar.flush()
     prj = params['srs'].ExportToWkt()
     Mk_proj( prj, params['outf'] )
 
