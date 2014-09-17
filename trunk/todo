@@ -1,9 +1,8 @@
-i) Implement the 50-cells-per-file output
-ii) Rewrite MODIS_subsetter.Get_modis_md:
+i) Rewrite MODIS_subsetter.Get_modis_md:
     just grab first file in directory,
     rather than requiring modis_day
-iii) add progress % to csv output
-iv)   implement $python run.py test >
+ii)   implement $python run.py test
+iii)   implement $ python run.py all
 
 1) hdf5 viewer for visualizing hdf raster timeseries
 2) Implement raslc2csv
