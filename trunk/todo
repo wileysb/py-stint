@@ -1,13 +1,10 @@
-i) Rewrite MODIS_subsetter.Get_modis_md:
-    just grab first file in directory,
-    rather than requiring modis_day
-ii)   implement $python run.py test
-iii)   implement $ python run.py all
+i)   implement $python run.py test
+ii)   implement $ python run.py all
 
-1) hdf5 viewer for visualizing hdf raster timeseries
+1) Implement MODIS archiving functions, and archive repair
 2) Implement raslc2csv
 3) Explore faster Land2csv through indexing dbf attributes
-4) Implement MODIS archiving functions, and archive repair
+4) hdf5 viewer for visualizing hdf raster timeseries
 4a) Start by debugging hdf5_to_tif
 4b) Then, maybe more advanced GUI viewer ?
  
