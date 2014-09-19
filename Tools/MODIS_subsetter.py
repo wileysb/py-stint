@@ -21,8 +21,15 @@
 #  See the GNU General Public License for more details.
 #
 ##################################################################
-
-import os,sys,osr,gdal,h5py,multiprocessing
+'''
+This module contains functions for:
+* Reading a specified set of MODIS product, dataset, tiles, and dates
+* Reading a shapefile or raster defining an Area of Interest
+* Creating an hdf5 array file with dimensions [time,y,x]
+  where the y and x dimensions are subset to the minimum dimensions
+  completely containing the Area of Interest
+'''
+import os,sys,osr,gdal,h5py,multiprocessing,glob
 import numpy as np
 import datetime as dt
 from MODIS_aoi import Mk_bbox
@@ -35,9 +42,29 @@ sin_srs = osr.SpatialReference()
 sin_srs.ImportFromWkt(sin_prj)
 
 ### READER FUNCTIONS
-def Get_modis_extent(modis_dir, dset, modis_day, mtile):
+def Get_modis_extent(modis_dir, dset, mtile):
+    '''Return Extents from a specified MODIS product and tile.
+
+    Open the first MODIS file in the appropriate directory
+    (MODIS_ARCHIVE/dset/mtile/*.hdf) and return a dictionary
+    with the following parameters, specifiying the MODIS raster
+    grid extents for that tile:
+
+    'dx'   : raster cell size, x direction, sinusoidal projection
+    'dy'   : raster cell size, y direction, sinusoidal projection
+    'xmin' : minimum x extent (left edge)
+    'ymin' : minimum y extent (bottom edge)
+    'xmax' : maximum x extent (right edge)
+    'ymax' : maximum y extent (top edge)
+
+    :param modis_dir: (string) path to MODIS archive
+    :param dset: (string) MODIS product name, ie 'MCD43A3'
+    :param mtile: (string) MODIS tile number, ie 'h19v03'
+    :return: (dict)
+    '''
     out = {}
-    src_fn = Get_modis_fn(modis_dir, dset, modis_day, mtile)
+    src_pattern = os.path.join(modis_dir,dset,mtile,'*.hdf')
+    src_fn = glob.glob(src_pattern)[0] # take first file in that folder!
     ras      = gdal.Open(src_fn)
     dset0    = ras.GetSubDatasets()[0][0] # first listed subdataset
     del ras
@@ -53,13 +80,20 @@ def Get_modis_extent(modis_dir, dset, modis_day, mtile):
     return out
 
 
-def Get_mosaic_extent( project, dset, modis_day ):
+def Get_mosaic_extent( project, dset ):
+    '''Return x and y cell center coordinates of a
+    MODIS mosaic bounding the project AOI.
+
+    :param project: (dict) py-stint project parameters
+    :param dset: (string) MODIS product, ie 'MCD43A3'
+    :return: (np.array,np.array) x_var,y_var: 1-D arrays, cell center coords
+    '''
     modis_tiles = project['modis_tiles']
     extents = Get_modis_extent(project['modis_dir'], 
-                               dset,modis_day,modis_tiles[0])
+                               dset,modis_tiles[0])
     for i in range(len(modis_tiles)): # fine that this repeats first tile
         nextent = Get_modis_extent(project['modis_dir'], 
-                                   dset,modis_day,modis_tiles[i])
+                                   dset,modis_tiles[i])
         extents['xmax'] = max(extents['xmax'],nextent['xmax'])
         extents['ymax'] = max(extents['ymax'],nextent['ymax'])
         extents['xmin'] = min(extents['xmin'],nextent['xmin'])
@@ -73,12 +107,33 @@ def Get_mosaic_extent( project, dset, modis_day ):
     return x_var,y_var
 
 
-def Get_modis_md(modis_dir, dset,dnum,modis_day,mtile):
-    '''modis_md = Get_modis_md(dset,dnum,modis_day,mtile)
-    modis_md.keys() : 'scale_factor','add_offset','fill_value'
+def Get_modis_md(modis_dir, dset, dnum, mtile):
+    '''Return a dict giving the keys to unpack the optimized
+    MODIS dataset values.
+
+    metadata should be applied as follows:
+    (1) REPLACE fill_value with NAN
+    (2) v = c*z + b, where:
+      v = measured value
+      c = stored cell value
+      z = scale_factor
+      b = add_offset
+
+    returns a dict with the following metadata parameters (all integer):
+
+    'scale_factor' : z
+    'add_offset'   : b
+    'fill_value'   : dataset NAN value
+
+    :param modis_dir: (string) path to MODIS_archive
+    :param dset: (string) MODIS product, ie 'MCD43A3'
+    :param dnum: (integer) subdataset number, ie 7 -> BSA_vis
+    :param mtile: (string) MODIS tile number, ie 'h19v03'
+    :return: (dict) MODIS metadata
     '''
     out      = {}
-    src_fn   = Get_modis_fn(modis_dir, dset, modis_day, mtile)
+    src_pattern = os.path.join(modis_dir,dset,mtile,'*.hdf')
+    src_fn = glob.glob(src_pattern)[0] # take first file in that folder!
     ras      = gdal.Open(src_fn)
     dname    = ras.GetSubDatasets()[dnum][0] # desired subdataset
     del ras
@@ -105,7 +160,19 @@ def Get_modis_md(modis_dir, dset,dnum,modis_day,mtile):
 
 
 def Get_modis_tile( project, hdfp, modis_day, mtile ):
-    '''a,x_var,y_var = Get_modis_tile(dset,dnum,modis_day,mtile)
+    '''
+
+    a,x_var,y_var = Get_modis_tile(dset,dnum,modis_day,mtile)
+
+    :param project: (dict) py-stint project parameters
+    :param hdfp: (dict) conversion parameters
+    :param modis_day: (string) YYYYDDD date, ie '2000049'
+    :param mtile: (string) MODIS tile, ie 'h19v03'
+    :return: (np.array,np.array,np.array)
+              a,x_var,y_var
+              a: [y,x] np.array giving stored MODIS values
+              x_var: [x] x coordinates
+              y_var: [y] y coordinates
     '''
     out      = {}
     src_fn   = Get_modis_fn(hdfp['modis_dir'], hdfp['dset'], modis_day, mtile)
@@ -115,7 +182,7 @@ def Get_modis_tile( project, hdfp, modis_day, mtile ):
     ras = gdal.Open(dname)
 
     rasmd = ras.GetMetadata_Dict()
-    fill_value   = float(rasmd['_FillValue'])
+    # fill_value   = float(rasmd['_FillValue'])
 
     a = ras.ReadAsArray()
     #a = np.where(a==fill_value,hdfp['NODATA'],a)
@@ -146,14 +213,19 @@ def Get_modis_tile( project, hdfp, modis_day, mtile ):
 
 
 def Build_modis_mosaic( project, hdfp, modis_day):
-    '''a = Build_modis_mosaic(dset,modis_day,modis_tiles)
-    return a numpy array merging 
-    specified modis dset, tiles, and start_day
-    
-    nans fill gaps where tile is not specified or modis file is missing
+    '''Return numpy array, a MODIS mosaic bounding the project AOI, populated
+    with values for specified MODIS dset, tiles, and day.
+
+    Gaps in coverage (ie missing or corrupt modis file) are filled
+    with the nan/fill_value native to this modis dataset.
+
+    :param project: (dict) py-stint project parameters
+    :param hdfp: (dict) conversion parameters
+    :param modis_day: (string) YYYYDDD date, ie '2000049'
+    :return: (np.array) [y,x] MODIS mosaic bounding project AOI
     '''
     # Get extents of each tile
-    x_var,y_var = Get_mosaic_extent( project, hdfp['dset'], modis_day )
+    x_var,y_var = Get_mosaic_extent( project, hdfp['dset'] )
     x_s,x_e,y_s,y_e = Get_spatial_indexes(x_var,y_var, project['aoi'])
     x_sub = x_var[x_s:x_e]
     y_sub = y_var[y_s:y_e]
@@ -174,8 +246,22 @@ def Build_modis_mosaic( project, hdfp, modis_day):
     
 
 def Get_subset_indexes(x_sub,y_sub,x_tile,y_tile):
-    '''
-    x_s,x_e,y_s,y_e = Get_subset_indexes(x_sub,y_sub,x_tile,y_tile)
+    '''Return start and end indices for x and y coordinates.
+
+    indices identify which portion of a MODIS tile overlaps the
+    desired extents of the subset array.
+
+    :param x_sub: (np.array) [x] cell center x coords, hdf5 subset
+    :param y_sub:(np.array) [y] cell center y coords, hdf5 subset
+    :param x_tile: (np.array) [x] cell center x coords, MODIS tile
+    :param y_tile: (np.array) [y] cell center x coords, MODIS tile
+    :return:(int,int,int,int) x_start,x_end,y_start,y_end
+            x start & end, y start & end indices
+            if, for example:
+            a = [y,x] modis tile,
+            a_sub = [y,x] portion of subset array overlapping that tile,
+            then:
+            a_sub = a[y_start:y_end,x_start:x_end]
     '''
     xmin = x_tile[0];xmax = x_tile[-1]
     pad = 0.2
@@ -204,20 +290,36 @@ def Get_subset_indexes(x_sub,y_sub,x_tile,y_tile):
     
 ### BUILDER FUNCTIONS
 def Start_modis_hdf(project, hdfp):
-    modis_day = project['modis_days'][1] # some datasets lack first modis day
-    x_var, y_var = Get_mosaic_extent( project, hdfp['dset'], modis_day )
+    '''Start aggregating MODIS dates and tiles to one hdf5 array file.
+
+    Defines subset array extents, and passes parameters on to Mk_hdf
+
+    :param project: (dict) py-stint project parameters
+    :param hdfp: (dict) conversion parameters
+    :return: None
+    '''
+    x_var, y_var = Get_mosaic_extent( project, hdfp['dset'] )
     x_s,x_e,y_s,y_e = Get_spatial_indexes(x_var, y_var, 
                                           project['aoi'])
     x_sub = x_var[x_s:x_e]
     y_sub = y_var[y_s:y_e]
 
     modis_md = Get_modis_md( project['modis_dir'],
-                             hdfp['dset'],hdfp['dnum'],modis_day,
+                             hdfp['dset'],hdfp['dnum'],
                              project['modis_tiles'][0] )
     Mk_hdf(project, hdfp, x_sub, y_sub, modis_md)
 
 
 def Mk_hdf( project, hdfp, x_var, y_var, modis_md ):
+    '''Creates the hdf5 file, and defines the dimensions and datasets.
+
+    :param project: (dict) py-stint project parameters
+    :param hdfp: (dict) conversion parameters
+    :param x_var: (np.array) [x] cell center coordinates bounding the AOI
+    :param y_var: (np.array) [y] cell center coordinates bounding the AOI
+    :param modis_md: (dict) keys to unpack the MODIS dataset stored values.
+    :return:
+    '''
     print 'Creating',hdfp['sds'],hdfp['h5f']
     
     with h5py.File(hdfp['h5f'],"w") as hdf:
@@ -246,6 +348,28 @@ def Mk_hdf( project, hdfp, x_var, y_var, modis_md ):
 
 
 def Continue_modis_hdf( project, hdfp ):
+    '''Continue population of a MODIS hdf5 array file.
+
+    If the file was just created with Mk_hdf, it will be
+    populated from the beginning.
+
+    If the process was previously interrupted at timestep <i>, it will be
+    populated from <i-1>, ensuring that all resulting output timesteps
+    are complete.
+
+    This function uses multiprocessing, it is not recommended to exploit
+    this by calling more than one child at a time.  Every child process
+    would try to modify the same file, which might adversely affect the
+    integrity of the resulting file.
+
+    Multiprocessing is used to make sure the RAM buffers are cleared
+    periodically while looping through the potentially memory-intensive
+    task of aggregating all MODIS tiles to a single hdf5 array file.
+
+    :param project: (dict) py-stint project parameters
+    :param hdfp: (dict) conversion parameters
+    :return: None
+    '''
     print 'Continuing',hdfp['sds'],hdfp['h5f']
     start_end = Gen_appendexes( hdfp )
     if start_end:
@@ -266,9 +390,15 @@ def Continue_modis_hdf( project, hdfp ):
     
 
 def Gen_appendexes( hdfp ):
-    '''Find times already done
-    split times-to-do into groups of $appendnum
-    return groups'''
+    '''Generates the timestep intervals for hdf5 population.
+
+     The intervals are used to coordinate buffer-clearing child processes,
+     as well as identifying where to pick up if the aggregation process
+     was previously interrupted.
+
+    :param hdfp: (dict) conversion parameters
+    :return: None
+    '''
     
     with h5py.File(hdfp['h5f'], "r") as hdf:
         progress = hdf['time'][:]
@@ -290,7 +420,27 @@ def Gen_appendexes( hdfp ):
 
 
 def Append_to_hdf( project, hdfp, st_i, end_i):
-    """thread worker function"""
+    '''Populate the hdf5 file by aggregating timesteps identified.
+
+    st_i and end_i are start and end indices, aggregating
+    MODIS intervals beginning with st_i and ending with the record
+    before end_i.
+
+    if, for example:
+     modis_days = ['2001049','2001057','2001065','2001073']
+     st_i  = 0
+     end_i = 2
+    then:
+     MODIS intervals '2001049' and '2001057','2001065' will be aggregated
+     and written out to the hdf5 array file
+
+
+    :param project: (dict) py-stint project parameters
+    :param hdfp: (dict) conversion parameters
+    :param st_i: (int) timestep interval, start
+    :param end_i: (int) timestep interval, end
+    :return: None
+    '''
     toprint = 'Continuing'#,hdfp['sds'],hdfp['h5f']
     with h5py.File(hdfp['h5f'], "a") as hdf:
         for itime in range(st_i,end_i):
@@ -307,6 +457,12 @@ def Append_to_hdf( project, hdfp, st_i, end_i):
 
 ### AOI functions
 def Get_sin_aoi( aoi ):
+    '''Return sinusoidal bounding coordinates of AOI.
+
+    :param aoi: (dict) aoi extents
+    :return: (float,float,float,float) xmin,ymin,xmax,ymax
+             aoi extents in sinusoidal coordinates
+    '''
     # Load aoi extents
     aoi_bbox = Mk_bbox(aoi['xmin'],aoi['ymin'],aoi['xmax'],aoi['ymax'])
 
@@ -324,11 +480,11 @@ def Get_sin_aoi( aoi ):
 
 
 def Get_spatial_indexes(x_var, y_var, aoi):
-    '''x_s,x_e,y_s,y_e = Get_spatial_indexes(x_var,y_var)
-    x_sub = x_var[x_s:x_e]
-    y_sub = y_var[y_s:y_e]
-    
-    # index interpretation:
+    '''Return start and end indices for x and y coordinates.
+
+    indices identify the subset of x_var and y_var intersecting aoi extents
+
+    index interpretation:
     if x_s==None:
         print 'aoi extends west of grid'
     if x_e==None:
@@ -337,6 +493,21 @@ def Get_spatial_indexes(x_var, y_var, aoi):
         print 'aoi extends north of grid'
     if y_e==None:
         print 'aoi extends south of grid'
+
+
+    :param x_var: (np.array) [x] cell center x coordinates, MODIS tile
+    :param y_var: (np.array) [y] cell center y coordinates, MODIS tile
+    :param aoi: (dict) aoi extents
+    :return:(int,int,int,int) x_start,x_end,y_start,y_end
+            x start & end, y start & end indices
+            if, for example:
+            a = [y,x] modis tile,
+            a_sub = [y,x] portion of tile overlapping the aoi bounding box,
+            then:
+            a_sub = a[y_start:y_end,x_start:x_end]
+            while the cell center corodinates of the tile subset are:
+            x_sub = x_var[x_s:x_e]
+            y_sub = y_var[y_s:y_e]
     '''
     aoi_xmin,aoi_ymin,aoi_xmax,aoi_ymax = Get_sin_aoi(aoi)
     
@@ -361,6 +532,15 @@ def Get_spatial_indexes(x_var, y_var, aoi):
 
 
 def Mod2hdf( project, dset, dnum ):
+    '''Coordinates the aggregation of a MODIS dataset to hdf5 array file.
+
+    If the hdf5 has been created, Mod2hdf will pick up where it left off.
+
+    :param project: (dict) py-stint project parameters
+    :param dset: (string) MODIS product, ie 'MCD43A3'
+    :param dnum: (integer) subdataset number, ie 7 -> BSA_vis
+    :return: None
+    '''
     dname = project['modis']
     modis_days = project['modis_days']
 
@@ -388,7 +568,7 @@ def Mod2hdf( project, dset, dnum ):
     hdfp['h5f'] = os.path.join(project['hdf_dir'],project['prj_name']+ \
                                '_'+hdfp['sds']+'.hdf5')
 
-    modis_md = Get_modis_md(hdfp['modis_dir'],dset,dnum,hdfp['modis_days'][0],hdfp['modis_tiles'][0])
+    modis_md = Get_modis_md(hdfp['modis_dir'],dset,dnum,hdfp['modis_tiles'][0])
     hdfp['fill_value'] = modis_md['fill_value']
     if not os.path.isfile(hdfp['h5f']):
         Start_modis_hdf(project, hdfp)

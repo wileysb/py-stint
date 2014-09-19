@@ -173,8 +173,8 @@ def Veclc2csv( project ):
     if lcm_sz > lcm_thresh:
         # How many times does mod_per_reg go into len(mod_id) ?
         num_reg = int(math.ceil(len(mod_id_list)/mod_per_reg))
-        modr = (num_reg,int(mod_per_reg))
-        print 'Splitting CSVs into %s regions, %s MODIS cells each' % modr
+        modr = (lcm_sz,num_reg,int(mod_per_reg))
+        print 'Splitting %s lcm features into %s regions, %s MODIS cells each' % modr
 
         # For each region, export one set of CSV files
         # for the modis ids within that region
@@ -194,7 +194,7 @@ def Veclc2csv( project ):
 
 
     else:
-        print 'Writing out to 1 CSV per dataset:'
+        print 'Writing %s lcm features to 1 CSV per dataset:' % lcm_sz
         sys.stdout.write("lc.csv: ")
         sys.stdout.flush()
         Land2csv( project, mod_ind_list )

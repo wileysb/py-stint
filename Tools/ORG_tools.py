@@ -269,7 +269,6 @@ def Daynum2date(daynum, basedatestr):
     return out_string
 
 
-
 class Countdown:
     def __init__(self,count_max,interval=0.05):
         self.interval  = float(interval)
