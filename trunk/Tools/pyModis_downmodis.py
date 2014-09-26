@@ -199,7 +199,10 @@ timeout = Timeout value for HTTP server
         self.path = urljoin(path, self.product)
         # tiles to downloads
         if tiles:
-            self.tiles = tiles.split(',')
+            if type(tiles)==str:
+                self.tiles = tiles.split(',')
+            elif type(tiles)==list:
+                self.tiles = tiles
         else:
             self.tiles = tiles
         # set destination folder
@@ -355,7 +358,8 @@ before failing
             self.today = str2date(self.today)
             # set enday variable to data
         if self.enday != None:
-            self.enday = str2date(self.enday)
+            if type(self.enday) != datetime.date:
+                self.enday = str2date(self.enday)
         if self.today and self.enday:
             if self.today < self.enday:
                 raise IOError("The first day should be newer then end date")
