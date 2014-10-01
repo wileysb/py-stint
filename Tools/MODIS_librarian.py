@@ -24,6 +24,7 @@
 
 import os,glob
 import gdal
+from Tools.ORG_tools import Countdown
 
 
 def Retrieve_archive(project):
@@ -77,6 +78,11 @@ def Val_mod(modis_dir, dset, mtile, subdsets, mdays):
 
 def Gather_mod_flaws(project):
     flaws = {}
+    i=0
+    numtiles = len(project['modis_tiles'])
+    numdsets = len(project['modis'].keys())
+    count_max = numtiles * numdsets
+    progress_bar = Countdown(count_max)
     for mtile in project['modis_tiles']:
         flaws[mtile] = {}
         for mdset in project['modis'].keys():
@@ -84,6 +90,9 @@ def Gather_mod_flaws(project):
             flaws[mtile][mdset] = Val_mod( project['modis_dir'],
                                            mdset, mtile, subdsets,
                                            project['modis_days'] )
+            i+=1
+            progress_bar.check(i)
+    progress_bar.flush()
     return flaws
 
 

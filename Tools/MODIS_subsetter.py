@@ -34,6 +34,7 @@ import numpy as np
 import datetime as dt
 from MODIS_aoi import Mk_bbox
 from MODIS_librarian import Get_modis_fn
+from ORG_tools import Countdown
 
 ### DEFINE MODIS SINUSOIDAL PROJECTION
 # sin_prj_string directly from MODIS hdf files:
@@ -307,10 +308,10 @@ def Start_modis_hdf(project, hdfp):
     modis_md = Get_modis_md( project['modis_dir'],
                              hdfp['dset'],hdfp['dnum'],
                              project['modis_tiles'][0] )
-    Mk_hdf(project, hdfp, x_sub, y_sub, modis_md)
+    Mk_hdf( hdfp, x_sub, y_sub, modis_md)
 
 
-def Mk_hdf( project, hdfp, x_var, y_var, modis_md ):
+def Mk_hdf( hdfp, x_var, y_var, modis_md ):
     '''Creates the hdf5 file, and defines the dimensions and datasets.
 
     :param project: (dict) py-stint project parameters
@@ -373,19 +374,17 @@ def Continue_modis_hdf( project, hdfp ):
     print 'Continuing',hdfp['sds'],hdfp['h5f']
     start_end = Gen_appendexes( hdfp )
     if start_end:
+        progress_bar = Countdown(len(start_end))
         for i,s_e in enumerate(start_end):
             arrrrrgs = ( project, hdfp, s_e[0], s_e[1] )
             p = multiprocessing.Process(target=Append_to_hdf, 
                                           args=arrrrrgs)
             p.start()
             p.join() # main script waits for this child to grow up
-            
-            prog = int( float(i) / len(start_end) * 100 )
-            report = '%s%% . ' % prog
-            sys.stdout.write( report )
-            sys.stdout.flush()
-        
-        sys.stdout.write("\n")        
+
+            progress_bar.check(i)
+
+        progress_bar.flush()
         print hdfp['sds'],'FINISHED!'
     
 
