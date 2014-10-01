@@ -30,6 +30,7 @@ from scipy.io.netcdf import netcdf_file as NetCDFFile
 #Can this simply drop in like this?
 from MODIS_aoi import Mk_bbox
 from ORG_tools import Yearday2hrnum
+from ORG_tools import Countdown
 
 ### DEFINE GEOGRAPHIC PROJECTION, WGS84
 # sin_prj_string directly from MODIS hdf files:
@@ -232,19 +233,21 @@ def Continue_era_hdf( project, hdfp ):
     print 'Continuing', hdfp['sds'], hdfp['h5f']
     start_end = Gen_appendexes( project, hdfp )
     if start_end:
+        progress_bar = Countdown(len(start_end))
         for i,s_e in enumerate(start_end):
             toprint = project['modis_days'][s_e[0]]
             p = multiprocessing.Process(target=Append_to_hdf, \
                                   args=(project, hdfp, s_e[0], s_e[1]))
             p.start()
             p.join() # main script waits for this child to grow up
-            
-            prog = int( float(i) / len(start_end) * 100 )
-            report = '%s%% . ' % prog
-            sys.stdout.write( report )
-            sys.stdout.flush()
-    
-    sys.stdout.write("\n") 
+
+            progress_bar.check(i)
+            #prog = int( float(i) / len(start_end) * 100 )
+            #report = '%s%% . ' % prog
+            #sys.stdout.write( report )
+            #sys.stdout.flush()
+    progress_bar.flush()
+    #sys.stdout.write("\n")
     print hdfp['sds'],'FINISHED!'
 
 

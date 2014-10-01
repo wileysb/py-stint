@@ -96,7 +96,7 @@ def Parse_input(fn):
                 inp_params[k] = val
     if inp_params['lc_type']=='tif_dir':
         # define lc_src:
-        src_k  = inp_params['rlc_init'][3:]
+        src_k  = inp_params['lc'].keys()[0]
         lc_fn = inp_params['lc'][src_k]
         inp_params['lc_src'] = lc_fn
 
@@ -270,17 +270,43 @@ def Daynum2date(daynum, basedatestr):
 
 
 class Countdown:
-    def __init__(self,count_max,interval=0.05):
-        self.interval  = float(interval)
+    def __init__(self,count_max,barlen=50):
+        self.barlen = int(barlen)
         self.count_max = float(count_max)
-        self.count_update = self.count_max * self.interval # print progress every 5%!
+        self.status = ""
+
+    def update_progress(self):
+        if isinstance(self.progress, int):
+            self.progress = float(self.progress)
+        if not isinstance(self.progress, float):
+            self.progress = 0
+            self.status = "error: progress var must be float\r\n"
+        if self.progress < 0:
+            self.progress = 0
+            self.status = "Halt...\r\n"
+        if self.progress >= 1:
+            self.progress = 1
+            self.status = "Done...\r\n"
+        block = int(round(self.barlen*self.progress))
+        prog = int(self.progress*100)
+        text = "\r[{0}] {1}% {2}".format( "="*block + " "*(self.barlen-block),
+                                          prog, self.status)
+        sys.stdout.write(text)
+        sys.stdout.flush()
+
 
     def check(self,val):
-        if int( math.fmod( val, self.count_update ) ) == 0:
-            prog = int( float(val) / self.count_max * 100 )
-            report = '%s%% . ' % prog
-            sys.stdout.write( report )
-            sys.stdout.flush()
+        self.progress = float(val) / self.count_max
+        self.update_progress()
+
 
     def flush(self):
-        sys.stdout.write("100% \n")
+        if not self.status=="Done...\r\n":
+            self.status = "Done...\r\n"
+            self.progress = 1
+            block = int(round(self.barlen*self.progress))
+            prog = int(self.progress*100)
+            text = "\r[{0}] {1}% {2}".format( "="*block + " "*(self.barlen-block),
+                                              prog, self.status)
+            sys.stdout.write(text)
+            sys.stdout.flush()

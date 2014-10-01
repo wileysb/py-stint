@@ -1,4 +1,4 @@
-i)   implement $python run.py test
+i)   implement $ python run.py test
 ii)   implement $ python run.py all
 
 1) Implement MODIS archiving functions, and archive repair
@@ -7,4 +7,7 @@ ii)   implement $ python run.py all
 4) hdf5 viewer for visualizing hdf raster timeseries
 4a) Start by debugging hdf5_to_tif
 4b) Then, maybe more advanced GUI viewer ?
+5) sleeker progressbar which leaves behind less clutter?
+5a) \r carriagereturn, fish, or progressbar:
+    http://stackoverflow.com/questions/3002085/python-to-print-out-status-bar-and-percentage
  

@@ -195,12 +195,11 @@ def Veclc2csv( project ):
 
     else:
         print 'Writing %s lcm features to 1 CSV per dataset:' % lcm_sz
-        sys.stdout.write("lc.csv: ")
-        sys.stdout.flush()
+        print 'lc.csv: '
         Land2csv( project, mod_ind_list )
         for mod_type in project['modis'].keys():
             for modis_sds in project['modis'][mod_type].values():
-                sys.stdout.write("%s.csv . " % modis_sds)
+                sys.stdout.write("%s.csv . . " % modis_sds)
                 sys.stdout.flush()
                 Mod2csv(project, modis_sds, mod_ind_list)
 

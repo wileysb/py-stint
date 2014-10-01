@@ -152,7 +152,7 @@ def Load_params(input_fn):
     :param input_fn: path to INPUT.txt
     :return: (dict)
     '''
-    in_fn = 'INPUT.txt'
+    in_fn = input_fn
     try:
         project = Parse_input(in_fn)
     except:
@@ -218,25 +218,8 @@ def Run_stage(stage_num):
     :return: None
     '''
     if stage_num == 1:
-        # Validate MODIS datasets for ID'd tiles
-        mflaws = Gather_mod_flaws(project)
-        flawnum={'missing':0,'corrupt':0,'partial':0}
-        for mtile in mflaws.keys():
-            for mprod in mflaws[mtile].keys():
-                for flaw in flawnum.keys():
-                    flawnum[flaw] += len(mflaws[mtile][mprod][flaw])
-
-        for flaw in flawnum.keys():
-            if flawnum[flaw]>0:
-                print flawnum[flaw],flaw,'files in MODIS archive'
-          # Write modis flaws to file so they can be used to fix archive
-          # report flaw summary
-        # Validate ERA extents, date range, and file overlap
-        eflaws = Val_era(project)
-        if sum(eflaws.values()) == True:
-            for k in eflaws.keys():
-                if eflaws[k] == True:
-                    print 'Some issues with era',k
+        # Validate MODIS and ERA datasets
+        stage_1()
     elif stage_num == 2:
         # Collect MODIS data to 3d subset grids
         # save to .hdf5 in Processing/HDF/
@@ -250,106 +233,191 @@ def Run_stage(stage_num):
             Era2hdf( project, sds )
         # tools for examining hdf data: hdf2tif,dset2grid
     elif stage_num == 3:
-        pre  = project['prj_name']+'_' # start to all the project files
-
-        # Create MODIS shapefile from sample hdf5 stack
-        msds = project['modis'].values()[0].values()[0]
-        modis_fn           = os.path.join( project['hdf_dir'],
-                                           pre + msds + '.hdf5' )
-        modis_shp          = os.path.join( project['shp_dir'],
-                                           pre + 'modis' )
-        mod_params         = Parse_extents( modis_fn )
-        mod_params['outf'] = modis_shp
-        print 'Creating '+pre+'modis.shp from '+modis_fn
-        Tools.SPATIAL_tools.Mk_polygrid( mod_params )
-                        
-        # Create ERA shapefile from sample hdf5 stack
-        esds = project['era'].keys()[0]
-        era_fn             = os.path.join( project['hdf_dir'],
-                                           pre + esds + '.hdf5' )
-        era_shp            = os.path.join( project['shp_dir'],
-                                           pre + 'era' )
-        era_params         = Parse_extents( era_fn )
-        era_params['outf'] = era_shp
-        print 'Creating '+pre+'era.shp from '+era_fn
-        Tools.SPATIAL_tools.Mk_polygrid( era_params )
+        # Create MODIS and ERA shapefiles from sample hdf5 stack
+        stage_3()
         
     elif stage_num == 4:
-        pre  = project['prj_name']+'_' # start to all the project files
-        # Reproject and index MODIS shapefile (to land cover projection)
-        modis_shp          = os.path.join( project['shp_dir'],
-                                           pre + 'modis' )                                   
-        mod_tx             = os.path.join( project['shp_dir'],
-                                           pre+'modis_reprj' )
-        mod_reprj = {'dst_dsn':mod_tx, 'src_dsn':modis_shp,
-                     'dst_srs':project['srs'], 
-                     'fields':['ctr_x','ctr_y','x_ind','y_ind']}
-        print 'Reprojecting '+pre+'modis.shp to project reference system and creating rtree index'
-        Tools.SPATIAL_tools.Reprj_and_idx( **mod_reprj)
-        
-        # Reproject and index ERA shapefile (to land cover projection)
-        era_shp            = os.path.join( project['shp_dir'],
-                                           pre + 'era' )
-        era_tx             = os.path.join( project['shp_dir'],
-                                           pre+'era_reprj' )
-        era_reprj = {'dst_dsn':era_tx, 'src_dsn':era_shp,
-                     'dst_srs':project['srs'], 
-                     'fields':['ctr_x','ctr_y','x_ind','y_ind']}
-        print 'Reprojecting '+pre+'era.shp to project reference system and creating rtree index'
-        Tools.SPATIAL_tools.Reprj_and_idx( **era_reprj)
+        # Reproject/index MODIS and ERA shapefiles --> land cover projection
+        stage_4()
+
     elif stage_num == 5:
-        pre  = project['prj_name']+'_' # start to all the project files
-        # Create landcover-climate intersection (lcc)
-        lcc_dsn = os.path.join( project['shp_dir'],
-                                pre+'lcc' )
-        era_dsn             = os.path.join( project['shp_dir'],
-                                           pre+'era_reprj' )
-        lcc_params = {'src1_dsn':os.path.splitext(project['lc_src'])[0],
-                      'src1_pre': 'lc_',
-                      'src1_id' : 'lc_',
-                      'src1_fields':project['lc'].values(),
-                      'src2_dsn': era_dsn,
-                      'src2_pre': 'era_',
-                      'src2_id' : 'era_',
-                      'src2_fields': ['ctr_x','ctr_y','x_ind','y_ind'],
-                      'dst_dsn' : lcc_dsn,
-                      'area'    : False  }
-        print 'Intersecting LandCover & Climate grids -> lcc.shp'
-        Tools.SPATIAL_tools.Isect_poly_idx( **lcc_params )
+        if project['lc_type']=='shp':
+            # landcover + climate -> lcc
+            shp_stage_5()
+        elif project['lc_type']=='tif_dir':
+            # modis + climate -> mc
+            tif_stage_5()
         
     elif stage_num == 6:
-        pre  = project['prj_name']+'_' # start to all the project files
-        # Create lcc-MODIS intersection (final product, shapefile form!)
-        lcc_dsn             = os.path.join( project['shp_dir'],
-                                            pre+'lcc' )
-        lcc_fields = [ 'era_ctr_x', 'era_ctr_y', 'era_id',
-                       'era_x_ind', 'era_y_ind', 'lc_id']
-        for val in project['lc'].values():
-            lcc_fields.append('lc_'+val)
-        mod_dsn             = os.path.join( project['shp_dir'],
-                                            pre+'modis_reprj' )
-        lcm_dsn           = os.path.join( project['shp_dir'],
-                                            pre+'lcm' )
-        lcm_params = {'src1_dsn':lcc_dsn,
-                      'src1_pre': '',
-                      'src1_id' : 'lcc_',
-                      'src1_fields':lcc_fields,
-                      'src2_dsn': mod_dsn,
-                      'src2_pre': 'mod_',
-                      'src2_id' : 'mod_',
-                      'src2_fields':['ctr_x','ctr_y','x_ind','y_ind'],
-                      'dst_dsn' : lcm_dsn,  
-                      'area'    : True      }
-        print 'Intersecting lcc.shp with MODIS grid for final Landcover-Climate-MODIS (lcm) shapefile'
-        Tools.SPATIAL_tools.Isect_poly_idx( **lcm_params )
+        if project['lc_type']=='shp':
+            # lcc + modis -> lcm
+            shp_stage_6()
+        elif project['lc_type']=='tif_dir':
+            # LandCover + mc -> lcmc
+            tif_stage_6()
 
     elif stage_num == 7:
-        # Export era, modis, and intersected landcover to csv!
-        Veclc2csv(project)
+        if project['lc_type']=='shp':
+            # Export era, modis, and intersected landcover to csv!
+            Veclc2csv(project)
+        elif project['lc_type']=='tif_dir':
+            codethis = 'raslc2csv(project)'
 
     elif stage_num > 7:
         print "OK, OK, you're done already!"
         print "only 7 stages..."
+
+
+def stage_1():
+    print 'Looking for flaws in MODIS and ERA archives'
+    # Validate MODIS datasets for ID'd tiles
+    mflaws = Gather_mod_flaws(project)
+    flawnum={'missing':0,'corrupt':0,'partial':0}
+    for mtile in mflaws.keys():
+        for mprod in mflaws[mtile].keys():
+            for flaw in flawnum.keys():
+                flawnum[flaw] += len(mflaws[mtile][mprod][flaw])
+
+    for flaw in flawnum.keys():
+        if flawnum[flaw]>0:
+            print flawnum[flaw],flaw,'files in MODIS archive'
+      # Write modis flaws to file so they can be used to fix archive
+      # report flaw summary
+    # Validate ERA extents, date range, and file overlap
+    eflaws = Val_era(project)
+    if sum(eflaws.values()) == True:
+        for k in eflaws.keys():
+            if eflaws[k] == True:
+                print 'Some issues with era',k
+
+
+def stage_3():
+    pre  = project['prj_name']+'_' # start to all the project files
+    # Create MODIS shapefile from sample hdf5 stack
+    msds = project['modis'].values()[0].values()[0]
+    modis_fn           = os.path.join( project['hdf_dir'],
+                                       pre + msds + '.hdf5' )
+    modis_shp          = os.path.join( project['shp_dir'],
+                                       pre + 'modis' )
+    mod_params         = Parse_extents( modis_fn )
+    mod_params['outf'] = modis_shp
+    print 'Creating '+pre+'modis.shp from '+modis_fn
+    Tools.SPATIAL_tools.Mk_polygrid( mod_params )
+
+    # Create ERA shapefile from sample hdf5 stack
+    esds = project['era'].keys()[0]
+    era_fn             = os.path.join( project['hdf_dir'],
+                                       pre + esds + '.hdf5' )
+    era_shp            = os.path.join( project['shp_dir'],
+                                       pre + 'era' )
+    era_params         = Parse_extents( era_fn )
+    era_params['outf'] = era_shp
+    print 'Creating '+pre+'era.shp from '+era_fn
+    Tools.SPATIAL_tools.Mk_polygrid( era_params )
+
+
+def stage_4():
+    pre  = project['prj_name']+'_' # start to all the project files
+    # Reproject and index MODIS shapefile (to land cover projection)
+    modis_shp          = os.path.join( project['shp_dir'],
+                                       pre + 'modis' )
+    mod_tx             = os.path.join( project['shp_dir'],
+                                       pre+'modis_reprj' )
+    mod_reprj = {'dst_dsn':mod_tx, 'src_dsn':modis_shp,
+                 'dst_srs':project['srs'],
+                 'fields':['ctr_x','ctr_y','x_ind','y_ind']}
+    print 'Reprojecting '+pre+'modis.shp to project reference system and creating rtree index'
+    Tools.SPATIAL_tools.Reprj_and_idx( **mod_reprj)
+
+    # Reproject and index ERA shapefile (to land cover projection)
+    era_shp            = os.path.join( project['shp_dir'],
+                                       pre + 'era' )
+    era_tx             = os.path.join( project['shp_dir'],
+                                       pre+'era_reprj' )
+    era_reprj = {'dst_dsn':era_tx, 'src_dsn':era_shp,
+                 'dst_srs':project['srs'],
+                 'fields':['ctr_x','ctr_y','x_ind','y_ind']}
+    print 'Reprojecting '+pre+'era.shp to project reference system and creating rtree index'
+    Tools.SPATIAL_tools.Reprj_and_idx( **era_reprj)
+
+
+def shp_stage_5():
+    pre  = project['prj_name']+'_' # start to all the project files
+    # Create landcover-climate intersection (lcc)
+    lcc_dsn = os.path.join( project['shp_dir'],pre+'lcc' )
+    era_dsn             = os.path.join( project['shp_dir'],
+                                       pre+'era_reprj' )
+    lcc_params = {'src1_dsn':os.path.splitext(project['lc_src'])[0],
+                  'src1_pre': 'lc_',
+                  'src1_id' : 'lc_',
+                  'src1_fields':project['lc'].values(),
+                  'src2_dsn': era_dsn,
+                  'src2_pre': 'era_',
+                  'src2_id' : 'era_',
+                  'src2_fields': ['ctr_x','ctr_y','x_ind','y_ind'],
+                  'dst_dsn' : lcc_dsn,
+                  'area'    : False  }
+    print 'Intersecting LandCover & Climate grids -> lcc.shp'
+    Tools.SPATIAL_tools.Isect_poly_idx( **lcc_params )
+
+
+def tif_stage_5():
+    pre  = project['prj_name']+'_'
+    era_dsn             = os.path.join( project['shp_dir'],
+                                       pre+'era_reprj' )
+    mod_dsn             = os.path.join( project['shp_dir'],
+                                       pre+'modis_reprj' )
+    mc_dsn           = os.path.join( project['shp_dir'],
+                                       pre+'mc' )
+    lcc_params = {'src1_dsn': mod_dsn,
+                  'src1_pre': 'mod_',
+                  'src1_id' : 'mod_',
+                  'src1_fields':['ctr_x','ctr_y','x_ind','y_ind'],
+                  'src2_dsn': era_dsn,
+                  'src2_pre': 'era_',
+                  'src2_id' : 'era_',
+                  'src2_fields': ['ctr_x','ctr_y','x_ind','y_ind'],
+                  'dst_dsn' : mc_dsn,
+                  'area'    : True  }
+
+    print 'Intersecting Modis & Climate grids -> mc.shp'
+    Tools.SPATIAL_tools.Isect_poly_idx( **lcc_params )
+
+
+def shp_stage_6():
+    pre  = project['prj_name']+'_' # start to all the project files
+    # Create lcc-MODIS intersection (final product, shapefile form!)
+    lcc_dsn             = os.path.join( project['shp_dir'],
+                                        pre+'lcc' )
+    lcc_fields = [ 'era_ctr_x', 'era_ctr_y', 'era_id',
+                   'era_x_ind', 'era_y_ind', 'lc_id']
+    for val in project['lc'].values():
+        lcc_fields.append('lc_'+val)
+    mod_dsn             = os.path.join( project['shp_dir'],
+                                        pre+'modis_reprj' )
+    lcm_dsn           = os.path.join( project['shp_dir'],
+                                        pre+'lcm' )
+    lcm_params = {'src1_dsn':lcc_dsn,
+                  'src1_pre': '',
+                  'src1_id' : 'lcc_',
+                  'src1_fields':lcc_fields,
+                  'src2_dsn': mod_dsn,
+                  'src2_pre': 'mod_',
+                  'src2_id' : 'mod_',
+                  'src2_fields':['ctr_x','ctr_y','x_ind','y_ind'],
+                  'dst_dsn' : lcm_dsn,
+                  'area'    : True      }
+    print 'Intersecting lcc.shp with MODIS grid for final Landcover-Climate-MODIS (lcm) shapefile'
+    Tools.SPATIAL_tools.Isect_poly_idx( **lcm_params )
+
+
+def tif_stage_6():
+    pre  = project['prj_name']+'_' # start to all the project files
+    ras_fn = project['lc_src']
+    poly_dsn = os.path.join( project['shp_dir'],pre+'mc' )
+    dst_p = os.path.join(project['prj_directory'],'lcmc')
+    Tools.SPATIAL_tools.Isect_ras_poly(ras_fn,poly_dsn,dst_p)
+
 
 
 def is_stagenum(s,numstages=7):
@@ -393,6 +461,17 @@ if __name__ == '__main__':
             project = Load_params('INPUT.txt')
             stage_num = int(sys.argv[1])
             Run_stage(stage_num)
+        else:
+            bad_arg_exit()
+    elif len(sys.argv)==3:
+        if os.path.isfile(sys.argv[1]):
+            input_fn = sys.argv[1]
+            if is_stagenum(sys.argv[2]):
+                project = Load_params(input_fn)
+                stage_num = int(sys.argv[2])
+                Run_stage(stage_num)
+            else:
+                bad_arg_exit()
         else:
             bad_arg_exit()
     else:
