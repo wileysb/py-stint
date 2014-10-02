@@ -1,13 +1,13 @@
 i)   implement $ python run.py test
 ii)   implement $ python run.py all
+iii)   implement MODIS archiving and archive repair
 
-1) Implement MODIS archiving functions, and archive repair
-2) Implement raslc2csv
-3) Explore faster Land2csv through indexing dbf attributes
-4) hdf5 viewer for visualizing hdf raster timeseries
-4a) Start by debugging hdf5_to_tif
-4b) Then, maybe more advanced GUI viewer ?
-5) sleeker progressbar which leaves behind less clutter?
-5a) \r carriagereturn, fish, or progressbar:
-    http://stackoverflow.com/questions/3002085/python-to-print-out-status-bar-and-percentage
- 
+1) Implement raslc2csv
+1a) collect lc rasters to hdf5
+1b) use lcmc.p to guide export of lc,mod,era -> csv
+1c) play with lcmc.db instead of .p
+1d) play with lcmc regions
+2) Explore faster Land2csv through indexing dbf attributes
+3) hdf5 viewer for visualizing hdf raster timeseries
+3a) Start by debugging hdf5_to_tif
+3b) Then, maybe more advanced GUI viewer ?

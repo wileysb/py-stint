@@ -415,9 +415,8 @@ def tif_stage_6():
     pre  = project['prj_name']+'_' # start to all the project files
     ras_fn = project['lc_src']
     poly_dsn = os.path.join( project['shp_dir'],pre+'mc' )
-    dst_p = os.path.join(project['prj_directory'],'lcmc')
+    dst_p = os.path.join(project['prj_directory'],'lcmc.p')
     Tools.SPATIAL_tools.Isect_ras_poly(ras_fn,poly_dsn,dst_p)
-
 
 
 def is_stagenum(s,numstages=7):
