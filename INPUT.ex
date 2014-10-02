@@ -3,11 +3,17 @@
 # ',' should tehrefore be used in every ERA and MODIS dataset line
 # ',' should NOT be used in any other line
 
+# spaces between words and symbols are meaningless, and will be stripped
+# same goes for empty lines; they'll be ignored!
+# however, spaces must not appear within variables.
+# use '_' instead!
+
 
 # PROJECT INFO #########################################################
 start_year      = YY   # starts 1 January, 20YY (late Feb if '00)
 end_year        = YY   # runs through 31 December, 20YY
-
+# mod_per_region  = 500
+# lcm_thresh      = 10000
 
 # PATHS  ###############################################################
 aoi           = /path/to/aoi.shp # shp or raster directory
@@ -37,4 +43,4 @@ MOD10A2  =     0:mse,           1:dsc
 # lc_short_name  =  filename.tif OR shapefile field name               #
 # short_names should all start with 'lc_' for 'land cover'             #
 lc_category = code_06
-lc_age      = shp_age_field
+# lc_age      = shp_age_field
