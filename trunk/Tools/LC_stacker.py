@@ -25,15 +25,21 @@
 This module contains functions for:
 * Reading a specified set of geoTIFF files, each representing a data field
 * Creating an hdf5 array file with dimensions [field,y,x]
+from Tools.ORG_tools import Parse_input
+project = Parse_input('../STINT/k3tif/k3tif_INPUT.txt')
+project['hdf_dir'] = '/home/wiley/wrk/STINT/k3tif/HDF'
+project['prj_name'] = 'k3tif'
+fn = project['lc'].values()[0]
 '''
 
 __author__ = 'wiley'
 
-import os,sys,osr,gdal,h5py,multiprocessing
+import os,gdal,h5py
 import numpy as np
-import datetime as dt
-from ORG_tools import Countdown
-
+try:
+    from ORG_tools import Countdown
+except:
+    from Tools.ORG_tools import Countdown
 
 ### BUILDER FUNCTIONS
 def Mk_hdf( hdfp ):
@@ -48,146 +54,129 @@ def Mk_hdf( hdfp ):
     '''
     print 'Creating',hdfp['h5f']
 
+    # field names
+
     with h5py.File(hdfp['h5f'],"w") as hdf:
-        dshape=(len(hdfp['time_var']),len(y_var),len(x_var))
-        #arr_out = hdf.create_dataset(hdfp['sds'],dshape,dtype='int16', \
-        arr_out = hdf.create_dataset(hdfp['sds'],dshape,dtype=modis_md['dtype'], \
+        dshape=(len(hdfp['fields']),len(hdfp['y_var']),len(hdfp['x_var']))
+        arr_out = hdf.create_dataset('lc',dshape,dtype=hdfp['datatype'], \
           chunks=True,compression='lzf') #compression='gzip' or 'szip'
-        arr_out[:] = modis_md['fill_value']
-        x_out = hdf.create_dataset("x",data=x_var)
-        y_out = hdf.create_dataset("y",data=y_var)
-        t_out = hdf.create_dataset("time", (len(hdfp['time_var']),), \
-                                   dtype='int16')
-        yr_out= hdf.create_dataset("year",data=hdfp['years'])
-        day_out=hdf.create_dataset("yday",data=hdfp['ydays'])
-        # Add metadata
-        # access later: hdf[sds].attrs['scale_factor']
-        t_out.attrs.create('time_format','Days since %s' \
-                                        % hdfp['basedate'])
-        t_out.attrs.create('basedate',str(hdfp['basedate']))
-        arr_out.attrs.create('projection',sin_prj)
-        arr_out.attrs.create('scale_factor',modis_md['scale_factor'])
-        arr_out.attrs.create('add_offset',modis_md['add_offset'])
-        arr_out.attrs.create('fill_value',modis_md['fill_value'])
-        arr_out.attrs.create('dx',modis_md['dx'])
-        arr_out.attrs.create('dy',modis_md['dy'])
+        #arr_out[:] = hdfp['fill_vals'][0]
+        x_out = hdf.create_dataset("x",data=hdfp['x_var'])
+        y_out = hdf.create_dataset("y",data=hdfp['y_var'])
+        fillv = hdf.create_dataset("fill_vals",data=hdfp['fill_vals'])
+        field_names =  hdf.create_dataset("fields",data=hdfp['fields'].keys())
+        arr_out.attrs.create('projection',hdfp['projection'])
+        arr_out.attrs.create('fill_value',hdfp['fill_vals'][0])
+        arr_out.attrs.create('dx',hdfp['dx'])
+        arr_out.attrs.create('dy',hdfp['dy'])
 
 
-def Continue_modis_hdf( project, hdfp ):
-    '''Continue population of a MODIS hdf5 array file.
+def Fill_lc_hdf( hdfp ):
+    '''Populate a Landcover hdf5 array file.
 
-    If the file was just created with Mk_hdf, it will be
-    populated from the beginning.
+    There is no mosaicing or subsetting process here, since the landcover IS the AOI.
+    Additionally, there are probably not as many landcover fields as there are
+    MODIS or ERA days to aggregate. Because of this simplicity, the hdf5 population
+    for landcover doesn't have the same multiprocessing complexity.  It just loops
+    through the landcover tifs, reads in the array, and copies it to the appropriate
+    part of the hdf5 array file.
 
-    If the process was previously interrupted at timestep <i>, it will be
-    populated from <i-1>, ensuring that all resulting output timesteps
-    are complete.
-
-    This function uses multiprocessing, it is not recommended to exploit
-    this by calling more than one child at a time.  Every child process
-    would try to modify the same file, which might adversely affect the
-    integrity of the resulting file.
-
-    Multiprocessing is used to make sure the RAM buffers are cleared
-    periodically while looping through the potentially memory-intensive
-    task of aggregating all MODIS tiles to a single hdf5 array file.
-
-    :param project: (dict) py-stint project parameters
-    :param hdfp: (dict) conversion parameters
+    :param hdfp: (dict) array parameters
     :return: None
     '''
-    print 'Continuing',hdfp['sds'],hdfp['h5f']
-    start_end = Gen_appendexes( hdfp )
-    if start_end:
-        progress_bar = Countdown(len(start_end))
-        for i,s_e in enumerate(start_end):
-            arrrrrgs = ( project, hdfp, s_e[0], s_e[1] )
-            p = multiprocessing.Process(target=Append_to_hdf,
-                                          args=arrrrrgs)
-            p.start()
-            p.join() # main script waits for this child to grow up
+    print 'Continuing lc',hdfp['h5f']
 
-            progress_bar.check(i)
+    numfields = len(hdfp['fields'])
+    progress_bar = Countdown(numfields)
+    for i in range(numfields):
+        with h5py.File(hdfp['h5f'], "a") as hdf:
+            ras = gdal.Open(hdfp['fields'].values()[i])
+            r = ras.GetRasterBand(1)
+            a = r.ReadAsArray()
+            hdf['lc'][i,:,:] = a
 
-        progress_bar.flush()
-        print hdfp['sds'],'FINISHED!'
+        progress_bar.check(i)
+    progress_bar.flush()
+    print 'Landcover hdf5 FINISHED!'
 
 
-def Gen_appendexes( hdfp ):
-    '''Generates the timestep intervals for hdf5 population.
+# Landcover Tif Functions
+def Get_lc_params( fn ):
+    '''Return Extents from a specified geoTIFF.
 
-     The intervals are used to coordinate buffer-clearing child processes,
-     as well as identifying where to pick up if the aggregation process
-     was previously interrupted.
 
-    :param hdfp: (dict) conversion parameters
-    :return: None
+    'dx'   : raster cell size, x direction
+    'dy'   : raster cell size, y direction
+    'xmin' : minimum x extent (left edge)
+    'ymin' : minimum y extent (bottom edge)
+    'xmax' : maximum x extent (right edge)
+    'ymax' : maximum y extent (top edge)
+
+    :param modis_dir: (string) path to MODIS archive
+    :param dset: (string) MODIS product name, ie 'MCD43A3'
+    :param mtile: (string) MODIS tile number, ie 'h19v03'
+    :return: (dict)
     '''
+    out = {}
+    ras      = gdal.Open( fn )
+    gt       = ras.GetGeoTransform()
+    r        = ras.GetRasterBand(1)
+    out['dx']   = gt[1]
+    out['dy']   = gt[-1] # abs if this should be negatives
+    out['xmin'] = gt[0]
+    out['ymax'] = gt[3]
+    out['xmax'] = out['xmin'] + ras.RasterXSize*out['dx']
+    out['ymin'] = out['ymax'] + ras.RasterYSize*out['dy']
 
-    with h5py.File(hdfp['h5f'], "r") as hdf:
-        progress = hdf['time'][:]
-        diff_p = np.diff(progress)
-        if (diff_p<=0).any(): # start or mid
-            if (diff_p<0).any(): # mid
-                i_st = np.where(np.diff(progress)<0)[0][0]
-            elif (diff_p==0).all():
-                i_st = 0
-            appind = []
-            while (i_st+hdfp['appendnum'])<len(hdfp['modis_days']):
-                appind.append((i_st,i_st+hdfp['appendnum']))
-                i_st+=hdfp['appendnum']
-            appind.append((i_st,len(hdfp['modis_days'])))
-        else:
-            print hdfp['sds'],'already done??'
-            appind=False
-    return appind
+    x_var = np.arange(out['xmin'],out['xmax'],out['dx']) # xmax+.5 to include last val
+    y_var = np.arange(out['ymax'],out['ymin'],out['dy'])
 
+    out['x_var'] = x_var
+    out['y_var'] = y_var
+    out['projection'] = ras.GetProjection()
+    out['datatype']   = gdal.GetDataTypeName(r.DataType)
+    out['fill_value'] = r.GetNoDataValue()
+    if 'int' in out['datatype'] or 'Int' in out['datatype']:
+        out['fill_value'] = int(out['fill_value'])
+    # if datatype is int, fill_value should probably be converted to int?
 
-def Append_to_hdf( project, hdfp, st_i, end_i):
-    '''Populate the hdf5 file by aggregating timesteps identified.
-
-    st_i and end_i are start and end indices, aggregating
-    MODIS intervals beginning with st_i and ending with the record
-    before end_i.
-
-    if, for example:
-     modis_days = ['2001049','2001057','2001065','2001073']
-     st_i  = 0
-     end_i = 2
-    then:
-     MODIS intervals '2001049' and '2001057','2001065' will be aggregated
-     and written out to the hdf5 array file
+    return out
 
 
-    :param project: (dict) py-stint project parameters
-    :param hdfp: (dict) conversion parameters
-    :param st_i: (int) timestep interval, start
-    :param end_i: (int) timestep interval, end
-    :return: None
-    '''
-    toprint = 'Continuing'#,hdfp['sds'],hdfp['h5f']
-    with h5py.File(hdfp['h5f'], "a") as hdf:
-        for itime in range(st_i,end_i):
-            try:
-                a=Build_modis_mosaic( project, hdfp,
-                                      hdfp['modis_days'][itime] )
-                hdf[hdfp['sds']][itime,:,:] = a
-                hdf['time'][itime]=hdfp['time_var'][itime]
-                toprint = hdfp['modis_days'][itime]
-            except:
-                print hdfp['modis_days'][itime],'NOVALUE'
-                hdf['time'][itime]=hdfp['time_var'][itime]
+def Load_lc_params( hdfp ):
+    fill_vals = []
+    # 'fill_vals'
 
+    # Open first tif, fill common params:
+    lcp = Get_lc_params( hdfp['fields'].values()[0])
 
+    for k in ['dx','dy','x_var','y_var','projection','datatype']:
+        hdfp[k] = lcp[k]
 
+    # fill up fill vals, make sure datatypes are the same
+    fill_vals.append(lcp['fill_value'])
+    for i in range(1,len(hdfp['fields'].values())):
+        lcp = Get_lc_params(hdfp['fields'].values()[i])
+        if lcp['fill_value']!=fill_vals[-1]:
+            print 'fill values vary between landcover datasets; this is ok!'
+        if lcp['datatype']!=hdfp['datatype']:
+            print '[ERROR] datatypes vary between landcover datasets; NOT ok!'
+            print hdfp['fields'].keys()[i], '--> check if hdf5 transcriptions are faithful!'
+        fill_vals.append(lcp['fill_value'])
 
+    hdfp['fill_vals'] = fill_vals
 
-
+    return hdfp
 
 
 def Gen_lc_hdf( project ):
     hdfp = {}
-    hdfp{'fields'} = project['lc']
-    hdfp['h5f'] = os.path.join(project['hdf_dir'],'lc.hdf5')
-    # get x and y arrays
-    # 
+    hdfp['fields'] = project['lc']
+    hdfp['h5f'] = os.path.join(project['hdf_dir'], project['prj_name']+'_lc.hdf5')
+
+    hdfp = Load_lc_params( hdfp )
+    if not os.path.isfile(hdfp['h5f']):
+        Mk_hdf( hdfp )
+
+    Fill_lc_hdf( hdfp )
+    print 'Bing!!'
