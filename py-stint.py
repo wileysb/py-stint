@@ -231,7 +231,11 @@ def Run_stage(stage_num):
         # save to .hdf5 in Processing/HDF/
         for sds in project['era'].keys():
             Era2hdf( project, sds )
-        # tools for examining hdf data: hdf2tif,dset2grid
+
+        # IF landcover is a directory of tifs, aggregate them to hdf5:
+        if project['lc_type']=='tif_dir':
+            from Tools.LC_stacker import Gen_lc_hdf
+            Gen_lc_hdf( project )
     elif stage_num == 3:
         # Create MODIS and ERA shapefiles from sample hdf5 stack
         stage_3()
@@ -393,10 +397,10 @@ def shp_stage_6():
                    'era_x_ind', 'era_y_ind', 'lc_id']
     for val in project['lc'].values():
         lcc_fields.append('lc_'+val)
-    mod_dsn             = os.path.join( project['shp_dir'],
-                                        pre+'modis_reprj' )
-    lcm_dsn           = os.path.join( project['shp_dir'],
-                                        pre+'lcm' )
+    mod_dsn    = os.path.join( project['shp_dir'],
+                               pre+'modis_reprj' )
+    lcm_dsn    = os.path.join( project['shp_dir'],
+                               pre+'lcm' )
     lcm_params = {'src1_dsn':lcc_dsn,
                   'src1_pre': '',
                   'src1_id' : 'lcc_',
@@ -416,6 +420,7 @@ def tif_stage_6():
     ras_fn = project['lc_src']
     poly_dsn = os.path.join( project['shp_dir'],pre+'mc' )
     dst_p = os.path.join(project['prj_directory'],'lcmc.p')
+    # Play with lcmc.sqlite instead of .p:
     Tools.SPATIAL_tools.Isect_ras_poly(ras_fn,poly_dsn,dst_p)
 
 
