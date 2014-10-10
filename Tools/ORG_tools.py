@@ -270,10 +270,13 @@ def Daynum2date(daynum, basedatestr):
 
 
 class Countdown:
-    def __init__(self,count_max,barlen=50):
+    def __init__(self,count_max,update_interval=None,barlen=50):
+        self.update_interval=update_interval
         self.barlen = int(barlen)
         self.count_max = float(count_max)
         self.status = ""
+        if self.update_interval:
+            self.count_update = self.count_max * self.update_interval
 
     def update_progress(self):
         if isinstance(self.progress, int):
@@ -297,7 +300,11 @@ class Countdown:
 
     def check(self,val):
         self.progress = float(val) / self.count_max
-        self.update_progress()
+        if self.update_interval:
+            if int( math.fmod( val, self.count_update ) ) == 0:
+                self.update_progress()
+        else:
+            self.update_progress()
 
 
     def flush(self):

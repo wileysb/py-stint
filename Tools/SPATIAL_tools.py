@@ -24,9 +24,15 @@
 '''Module containing shapefile and
 
 '''
-import os,sys,math,cPickle,sys
-import rtree,ogr,osr,gdalconst
+import os
+import cPickle
+import sys
+import rtree
+import ogr
+import osr
+import gdalconst
 import numpy as np
+import sqlite3
 from ORG_tools import Countdown
 
 class FastRtree(rtree.Rtree):
@@ -322,7 +328,7 @@ def Get_spatial_indexes(x_var,y_var,bounds):
     return x_s,x_e,y_s,y_e
 
 
-def Isect_ras_poly(ras_fn,poly_dsn,dst_p):
+def Isect_ras_poly(ras_fn,poly_dsn,dst_fn):
     '''
     Isect_ras_poly(ras,poly_dsn,dst_dsn)
     raster should have extension
@@ -330,21 +336,37 @@ def Isect_ras_poly(ras_fn,poly_dsn,dst_p):
     raster and poly should already be in the same projection
     Function loops through features in poly, finds ras cells
     wholly within the feature, and intersect ras cells on the border
+
+    if dst_fn.split('.')=='p', output to pickle
+    if dst_fn.split('.')=='db', output to sqlite
     '''
     out = {}
     ras      = Parse_extents(ras_fn)
     poly_ds  = ogr.Open(poly_dsn+'.shp',gdalconst.GA_ReadOnly)
     poly_lyr = poly_ds.GetLayer(0)
-    
+
     ras_x    = np.arange(ras['xmin'],ras['xmax'],ras['dx'])
     ras_y    = np.arange(ras['ymax'],ras['ymin'],-1*ras['dy'])
-    
+
     ras_box  = Mk_bbox(min(ras_x),min(ras_y),max(ras_x),max(ras_y))
-    
+
     # Initialize progress updater
     count_max    = float(poly_lyr.GetFeatureCount())
     # count_update = count_max * 0.05 # print progress every 5%!
     progress_bar = Countdown(count_max)
+
+    if dst_fn.split('.')[1]=='db':
+        dst = 'db'
+        conn = sqlite3.connect(dst_fn)
+        c = conn.cursor()
+        c.execute('''CREATE TABLE inside
+                  (fid integer, px integer, py integer)''')
+                  # id integer primary key autoincrement not null,
+        c.execute('''CREATE TABLE border
+                  (fid integer, px integer, py integer, area real)''')
+        conn.commit()
+    else:
+        dst='p' # default to pickle
 
     for fid in range(0,poly_lyr.GetFeatureCount()):
         # out[fid] = [[within],[intersecting]]
@@ -356,10 +378,10 @@ def Isect_ras_poly(ras_fn,poly_dsn,dst_p):
             out[fid] = [[],[]]
             bounds = geom.GetEnvelope()
             x_s,x_e,y_s,y_e = Get_spatial_indexes(ras_x,ras_y,bounds)
-                
+
             cx_range   = ras_x[x_s:x_e]
             cy_range   = ras_y[y_s:y_e]
-            
+
             for i,cx in enumerate(cx_range):
                 px = x_s+i
                 for j,cy in enumerate(cy_range):
@@ -368,37 +390,53 @@ def Isect_ras_poly(ras_fn,poly_dsn,dst_p):
                     ras_cell = Mk_bbox(cx,cy-ras['dy'],cx+ras['dx'],cy)
                     if ras_cell.Intersects(geom):
                         if ras_cell.Within(geom):
-                            out[fid][0].append((px,py))
+                            if dst=='p':
+                                coords=(px,py)
+                            elif dst=='db':
+                                coords=(fid,px,py)
+                            out[fid][0].append(coords)
                         else:
                             isect = ras_cell.Intersection(geom)
-                            out[fid][1].append((px,py,isect.Area()))
-            
+                            if dst=='p':
+                                coords=(px,py,isect.Area())
+                            elif dst=='db':
+                                coords=(fid,px,py,isect.Area())
+                            out[fid][1].append(coords)
+
             # Tuple to Array if there were any intersecting cells
             # Remove this item if there were not
-            
+
             # This conversion slows down the code, but should shrink
             # the pickle size at the end?
             keep = False
             if len(out[fid][0]) > 0:
-                dtype = [('x',np.int64),('y',np.int64)]
-                out[fid][0] = np.array(out[fid][0],dtype)
-                keep = True
+                if dst=='p':
+                    dtype = [('x',np.int64),('y',np.int64)]
+                    out[fid][0] = np.array(out[fid][0],dtype)
+                    keep = True
+                elif dst=='db':
+                    c.executemany('INSERT INTO inside VALUES (?,?,?)',out[fid][0])
+                    # need to add fid to the start of the out[fid][0] lists!
             if len(out[fid][1]) > 0:
-                dtype=[('x',np.int64),('y',np.int64),('area',np.float64)]
-                out[fid][1] = np.array(out[fid][1],dtype)
-                keep = True
+                if dst=='p':
+                    dtype=[('x',np.int64),('y',np.int64),('area',np.float64)]
+                    out[fid][1] = np.array(out[fid][1],dtype)
+                    keep = True
+                elif dst=='db':
+                    # need to add fid to the start of the out[fid][1] lists!
+                    c.executemany('INSERT INTO border VALUES (?,?,?,?)',out[fid][1])
             if not keep:
                 jnk = out.pop(fid)
-            
-        # Print progress:
+        conn.commit()
         progress_bar.check(fid)
-        #if int( math.fmod( fid, count_update ) ) == 0:
-        #    prog = int( fid / count_max * 100 )
-        #    toprint = '%s%% . . ' % prog
-        #    print toprint
 
     progress_bar.flush()
-    cPickle.dump(out,open(dst_p,'w'))
+
+    if dst=='p':
+        cPickle.dump(out,open(dst_fn,'w'))
+    elif dst=='db':
+        conn.close()
+    del out
     
 
 def Parse_extents(src_fn):
