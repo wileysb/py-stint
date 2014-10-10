@@ -23,8 +23,15 @@
 ##################################################################
 __author__ = 'wiley'
 
-import os,sys,cPickle,csv,math
-import ogr,gdalconst,h5py
+import os
+import sys
+import cPickle
+import csv
+import math
+import ogr
+import gdalconst
+import h5py
+import sqlite3
 import numpy as np
 from ORG_tools import Countdown
 
@@ -208,13 +215,26 @@ def Veclc2csv( project ):
 
 
 def Raslc2csv( project, ras_lcm):
-    # ras_lcm will consist of ras_fn,poly_dsn,dst_p
-    isect  = cPickle.load(open(ras_lcm['p'],'r'))
-    hmm = 'not really sure how this will work'
-    hmm+= 'modis and climate get intersected in vectorland?'
-    hmm+= 'Then poly_dsn = mod+era, ras_fn = landcover, dst_p = (mod+era)X(landcover)'
-    print hmm
-    return hmm
+    # ras_lcm will consist of ras_fn,poly_dsn,isect_fn
+    lc_ras, mc_dsn, isect_fn = ras_lcm
+    if isect_fn.split('.')[-1]=='db':
+        dst = 'db'
+        conn = sqlite3.connect(isect_fn)
+        c    = conn.cursor()
+    else:
+        dst='p'
+        isect  = cPickle.load(open(isect_fn,'r'))
+
+    mod_ind_list = 'develop this'
+    era_ind_list = 'develop this'
+
+    # lc
+    hdr = ['id','area','lc_id','modis_id','era_id']
+    lc_attrs = ''
+    for attrib in project['lc'].keys():
+        hdr.append(attrib)
+        lc_attrs += ',lc_'+project['lc'][attrib]
+
 
 
 def Land2csv(project, mod_ind_list, region = None):

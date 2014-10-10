@@ -338,7 +338,15 @@ def Isect_ras_poly(ras_fn,poly_dsn,dst_fn):
     wholly within the feature, and intersect ras cells on the border
 
     if dst_fn.split('.')=='p', output to pickle
+    ## use a pickle output if the dataset is smallish
+    ## (less than millions of output lcm features)
+    ## The output file must load completely to memory
+    ## while writing csv output
     if dst_fn.split('.')=='db', output to sqlite
+    ## Use sqlite db output for larger regions or finer resolutions.
+    ## THe output data gets loaded step by step, so this puts less
+    ## strain on the system's memory during csv output
+    ## and scales better to larger output datsets
     '''
     out = {}
     ras      = Parse_extents(ras_fn)
@@ -355,7 +363,7 @@ def Isect_ras_poly(ras_fn,poly_dsn,dst_fn):
     # count_update = count_max * 0.05 # print progress every 5%!
     progress_bar = Countdown(count_max)
 
-    if dst_fn.split('.')[1]=='db':
+    if dst_fn.split('.')[-1]=='db':
         dst = 'db'
         conn = sqlite3.connect(dst_fn)
         c = conn.cursor()
