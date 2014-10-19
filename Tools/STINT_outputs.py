@@ -25,7 +25,6 @@ __author__ = 'wiley'
 
 import os
 import sys
-import cPickle
 import csv
 import math
 import ogr
@@ -34,6 +33,7 @@ import h5py
 import sqlite3
 import numpy as np
 from ORG_tools import Countdown
+from SPATIAL_tools import Ogr_open
 
 
 def Unique_values(src_dsn,field):
@@ -154,6 +154,9 @@ def Veclc2csv( project ):
     lcm_sz  = lcm_lyr.GetFeatureCount()
     del lcm_ds,lcm_lyr
 
+    ####!!!!!!!!!!!!!!!!!!!!!!!##########################!!!!!!!!!!!!!!!!!####
+    # FROM HERE WE COULD SNIP THIS OUT, MODIFY THE Land2CSV PARTS, AND PUT
+    # IT IN A COMMON SHARED FUNCTION FOR vecls2csv+raslc2csv
     ## Get lcm_thresh and mod_per_region from project, or set default:
     if 'lcm_thresh' in project.keys():
         try:
@@ -214,19 +217,102 @@ def Veclc2csv( project ):
         sys.stdout.flush()
 
 
-def Raslc2csv( project, ras_lcm):
-    # ras_lcm will consist of ras_fn,poly_dsn,isect_fn
-    lc_ras, mc_dsn, isect_fn = ras_lcm
-    if isect_fn.split('.')[-1]=='db':
-        dst = 'db'
-        conn = sqlite3.connect(isect_fn)
-        c    = conn.cursor()
-    else:
-        dst='p'
-        isect  = cPickle.load(open(isect_fn,'r'))
+def Get_unique_ids(mc_dsn, fid_list ):
+    '''WORDS!
 
-    mod_ind_list = 'develop this'
-    era_ind_list = 'develop this'
+    # MODIS: id, area, x/y_ind, x/y_sin, dates/attrs
+    # ERA  : id, x/y_ind, x/y_geog, dates/attrs
+    # LC   : id, area, lc_id, mod_id, era_id
+    #   report x/y_ind in lc.csv! also x/y proj?
+    # mod_id, era_id come from mc[fid]
+    # fid, px, py (or px/py/area) constitute unique identifying characteristics for lc.db:inside
+    # px,py alone constitute unique identifying characteristics for lc.db:border
+
+    :param mc_dsn:
+    :param fid_list:
+    :return:
+    '''
+
+    mc_ds, mc_lyr = Ogr_open(mc_dsn)
+
+    fields = 'mod_id, mod_x_ind, mod_y_ind, mod_area, era_id, era_x_ind, era_y_ind'
+
+    mod_id_list = []
+    era_id_list = []
+
+    mod_ind_list = []
+    era_ind_list = []
+
+    for fid in fid_list:
+        src_feat = mc_lyr.GetFeature(fid)
+        mod_id = src_feat.GetField('mod_id')
+        era_id = src_feat.GetField('era_id')
+        if mod_id not in mod_id_list:
+            mod_id_list.append(mod_id)
+            mod_area  = src_feat.GetField('mod_area')
+            mod_x_ind = src_feat.GetField('mod_x_ind')
+            mod_y_ind = src_feat.GetField('mod_y_ind')
+            mod_ind_list.append((mod_id, mod_x_ind, mod_y_ind, mod_area))
+        if era_id not in era_id_list:
+            era_id_list.append(era_id)
+            era_x_ind = src_feat.GetField('era_x_ind')
+            era_y_ind = src_feat.GetField('era_y_ind')
+            era_ind_list.append((era_id, era_x_ind, era_y_ind))
+
+    # sort both lists by mod_id and era_id:
+    era_ind_list = sorted(era_ind_list, key=lambda feat: feat[0])
+    mod_ind_list = sorted(mod_ind_list, key=lambda feat: feat[0])
+
+    del era_id_list, mod_id_list, mc_ds, mc_lyr, src_feat
+    return era_ind_list, mod_ind_list
+
+
+def Get_mc_sz(c):
+    sz_qry = '''SELECT COUNT(*) FROM inside
+                UNION ALL
+                SELECT COUNT(*) FROM border'''
+
+    c.execute(sz_qry)
+    sz_inside, sz_border = c.fetchall()
+    mc_sz = sz_inside[0] + sz_border[0]
+
+    return mc_sz
+
+
+def Get_mcfid_list(c):
+    fid_qry = '''SELECT DISTINCT fid FROM
+                (SELECT fid FROM inside
+                UNION ALL
+                SELECT fid FROM border)'''
+    c.execute(fid_qry)
+
+    fid_list = c.fetchall()
+
+    return [fid[0] for fid in fid_list]
+
+
+def Raslc2csv( project ):
+    hdf_name = project['prj_name']+'_lc.hdf5'
+    lc_path = os.path.join( project['hdf_dir'], hdf_name )
+
+    mc_name = project['prj_name']+'_mc'
+    mc_dsn  = os.path.join(project['shp_dir'], mc_name)
+
+    isect_fn = os.path.join(project['prj_directory'],'lcmc.db')
+
+    conn = sqlite3.connect(isect_fn)
+    c    = conn.cursor()
+
+    mc_sz = Get_mc_sz(c)
+
+    fid_list = Get_mcfid_list(c)
+
+    era_ind_list, mod_ind_list =Get_unique_ids(mc_dsn, fid_list)
+
+    ## Write each ERA dataset to CSV, one row per cell within aoi
+    for era_sds in project['era'].keys():
+        Era2csv(project, era_sds, era_ind_list)
+
 
     # lc
     hdr = ['id','area','lc_id','modis_id','era_id']
@@ -234,7 +320,6 @@ def Raslc2csv( project, ras_lcm):
     for attrib in project['lc'].keys():
         hdr.append(attrib)
         lc_attrs += ',lc_'+project['lc'][attrib]
-
 
 
 def Land2csv(project, mod_ind_list, region = None):
