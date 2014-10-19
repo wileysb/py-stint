@@ -41,12 +41,13 @@ class FastRtree(rtree.Rtree):
         return cPickle.dumps(obj, -1)
 
 
-def Reprj_and_idx( src_dsn, dst_dsn, dst_srs, fields ):
+def Reprj_and_idx( src_dsn, dst_dsn, dst_srs, fields, area=False ):
     '''
     Reprj_and_idx(src_dsn,dst_dsn,dst_srs,fields_to_preserve)
     in_shp  = 'path/to/in' # no extension 
     dst_dsn = 'path/to/out' # no extension
     dst_srs = osr.SpatialReference(), initialized to output ref system
+    :param area: (bool) True if 'area' attribute should be output
     '''
     # Load source dataset
     src_ds  = ogr.Open(src_dsn+'.shp',gdalconst.GA_ReadOnly)
@@ -77,7 +78,9 @@ def Reprj_and_idx( src_dsn, dst_dsn, dst_srs, fields ):
         except:
             print 'Source dataset has no field named',field_name
             jnk = fields.pop(ind)
-    
+    if area == True:
+        dst_lyr.CreateField(ogr.FieldDefn('area',ogr.OFTReal))
+
     defn = dst_lyr.GetLayerDefn()
 
     # Initialize progress updater
@@ -101,6 +104,9 @@ def Reprj_and_idx( src_dsn, dst_dsn, dst_srs, fields ):
         for field_name in fields:
             field_val = src_feat.GetField(field_name)
             dst_feat.SetField(field_name,field_val)
+        if area == True:
+                    dst_feat.SetField('area',geom.GetArea())
+
         dst_feat.SetGeometry(geom)
 
         dst_lyr.CreateFeature(dst_feat)

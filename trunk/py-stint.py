@@ -126,7 +126,7 @@ from Tools.ERA_librarian import Val_era
 from Tools.MODIS_subsetter import Mod2hdf
 from Tools.ERA_subsetter import Era2hdf
 from Tools.STINT_outputs import Veclc2csv
-from Tools.pyModis_downmodis import downModis
+# from Tools.pyModis_downmodis import downModis
 
 def prj_mkdir(dir_path):
     '''Create a directory, with a bit of extra syntax.
@@ -165,7 +165,7 @@ def Load_params(input_fn):
         print 'FIX ERRORS IN %s:' % in_fn
         for problem in err:
             print problem
-        sys.exit( 1 )
+        #sys.exit( 1 )
 
     ### DEFINE AND RESOLVE HDF DIRECTORY
     hdf_dir = os.path.join(project['prj_directory'],'HDF/')
@@ -265,7 +265,9 @@ def Run_stage(stage_num):
             # Export era, modis, and intersected landcover to csv!
             Veclc2csv(project)
         elif project['lc_type']=='tif_dir':
-            codethis = 'raslc2csv(project)'
+            todo = 'code Raslc2csv'
+            #isect_fn = os.path.join(project['prj_directory'],'lcmc.p')
+            #Raslc2csv(project)
 
     elif stage_num > 7:
         print "OK, OK, you're done already!"
@@ -330,6 +332,8 @@ def stage_4():
     mod_reprj = {'dst_dsn':mod_tx, 'src_dsn':modis_shp,
                  'dst_srs':project['srs'],
                  'fields':['ctr_x','ctr_y','x_ind','y_ind']}
+    if project['lc_type']=='tif_dir':
+        mod_reprj['area'] = True
     print 'Reprojecting '+pre+'modis.shp to project reference system and creating rtree index'
     Tools.SPATIAL_tools.Reprj_and_idx( **mod_reprj)
 
@@ -376,13 +380,13 @@ def tif_stage_5():
     lcc_params = {'src1_dsn': mod_dsn,
                   'src1_pre': 'mod_',
                   'src1_id' : 'mod_',
-                  'src1_fields':['ctr_x','ctr_y','x_ind','y_ind'],
+                  'src1_fields':['x_ind','y_ind','area'],
                   'src2_dsn': era_dsn,
                   'src2_pre': 'era_',
                   'src2_id' : 'era_',
                   'src2_fields': ['ctr_x','ctr_y','x_ind','y_ind'],
                   'dst_dsn' : mc_dsn,
-                  'area'    : True  }
+                  'area'    : False }
 
     print 'Intersecting Modis & Climate grids -> mc.shp'
     Tools.SPATIAL_tools.Isect_poly_idx( **lcc_params )
@@ -419,9 +423,9 @@ def tif_stage_6():
     pre  = project['prj_name']+'_' # start to all the project files
     ras_fn = project['lc_src']
     poly_dsn = os.path.join( project['shp_dir'],pre+'mc' )
-    dst_p = os.path.join(project['prj_directory'],'lcmc.p')
+    isect_fn = os.path.join(project['prj_directory'],'lcmc.db')
     # Play with lcmc.sqlite instead of .p:
-    Tools.SPATIAL_tools.Isect_ras_poly(ras_fn,poly_dsn,dst_p)
+    Tools.SPATIAL_tools.Isect_ras_poly(ras_fn,poly_dsn,isect_fn)
 
 
 def is_stagenum(s,numstages=7):
