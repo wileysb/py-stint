@@ -640,3 +640,61 @@ def Mk_polygrid(params):
     Mk_proj( prj, params['outf'] )
 
 
+def Dbf2db(poly_dsn, fields='all', idxs=None):
+    '''
+
+    :param src_dsn:
+    :param dst_fn:
+    :param fields:
+    :return:
+    '''
+    # Derive some paths
+    ds_path =  os.path.splitext(poly_dsn)[0]
+    dst_db = ds_path + '.db'
+    ds_name = os.path.basename(ds_path)
+
+    # create connection objects
+    poly_ds, poly_lyr = Ogr_open(poly_dsn)
+    poly_lyr_defn = poly_lyr.GetLayerDefn()
+
+    conn = sqlite3.connect(dst_db)
+    c    = conn.cursor()
+
+    # Get attribute data types:
+    if fields=='all':
+        attribs = {}
+        for i in range(poly_lyr_defn.GetFieldCount()):
+            field_defn = poly_lyr_defn.GetFieldDefn(i)
+            aname = field_defn.GetName()
+            fieldTypeCode = field_defn.GetType()
+            attribs[aname] = {}
+            attribs[aname]['type'] = field_defn.GetFieldTypeName(fieldTypeCode)
+            attribs[aname]['width'] = field_defn.GetWidth()
+            attribs[aname]['precision'] = field_defn.GetPrecision()
+    else:
+        attribs = {}
+        for ind,aname in enumerate(fields):
+            try:
+                field_i    = poly_lyr_defn.GetFieldIndex(aname)
+                field_defn = poly_lyr_defn.GetFieldDefn(field_i)
+                fieldTypeCode = field_defn.GetType()
+                attribs[aname] = {}
+                attribs[aname]['type'] = field_defn.GetFieldTypeName(fieldTypeCode)
+                attribs[aname]['width'] = field_defn.GetWidth()
+                attribs[aname]['precision'] = field_defn.GetPrecision()
+            except:
+                print 'First source dataset has no field named',aname
+                jnk = fields.pop(ind)
+
+    # Make Database and Table
+    c.execute('''CREATE TABLE inside
+                  ''')
+    sql = 'CREATE TABLE ' + ds_name + ' (%s)' # (fid integer, px integer, py integer)
+
+    #conn.execute('INSERT INTO "foo" VALUES(' + ','.join("?" * len(data)) + ')', data)
+
+    c.execute(sql)
+    # make index on mod_id
+
+    if idxs!=None:
+        idx_sql = '''CREATE INDEX IF NOT EXISTS idx_name ON table_name (col_name)'''
