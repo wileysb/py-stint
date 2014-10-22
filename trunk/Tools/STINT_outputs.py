@@ -148,16 +148,18 @@ def Veclc2csv( project ):
 
     del lcm_ds,ind_lyr
 
-    ## Check for number of landcover features, and export to CSV
+    ## Check for number of landcover features
     lcm_ds  = ogr.Open(lcm_path+'.shp',gdalconst.GA_ReadOnly)
     lcm_lyr = lcm_ds.GetLayer(0)
     lcm_sz  = lcm_lyr.GetFeatureCount()
     del lcm_ds,lcm_lyr
 
-    ####!!!!!!!!!!!!!!!!!!!!!!!##########################!!!!!!!!!!!!!!!!!####
-    # FROM HERE WE COULD SNIP THIS OUT, MODIFY THE Land2CSV PARTS, AND PUT
-    # IT IN A COMMON SHARED FUNCTION FOR vecls2csv+raslc2csv
-    ## Get lcm_thresh and mod_per_region from project, or set default:
+    # Export Landcover/Modis datasets to csv:
+    # use lcm_sz to control regionification
+    Lcmod_manager( project, lcm_sz, mod_ind_list)
+
+
+def Lcmod_manager( project, lcm_sz, mod_ind_list ):
     if 'lcm_thresh' in project.keys():
         try:
             lcm_thresh = int(project['lcm_thresh'])
@@ -182,7 +184,7 @@ def Veclc2csv( project ):
 
     if lcm_sz > lcm_thresh:
         # How many times does mod_per_reg go into len(mod_id) ?
-        num_reg = int(math.ceil(len(mod_id_list)/mod_per_reg))
+        num_reg = int(math.ceil(len(mod_ind_list)/mod_per_reg))
         modr = (lcm_sz,num_reg,int(mod_per_reg))
         print 'Splitting %s lcm features into %s regions, %s MODIS cells each' % modr
 
@@ -195,7 +197,9 @@ def Veclc2csv( project ):
             if e>=len(mod_ind_list):
                 e=-1
             region_mod_ind = mod_ind_list[s:e]
-            Land2csv( project, region_mod_ind, region=region )
+            numrows = Land2csv(project, region_mod_ind, region=region)
+            if numrows:
+                print 'rows in %s, rows out %s' % (lcm_sz,numrows)
             for mod_type in project['modis'].keys():
                 for modis_sds in project['modis'][mod_type].values():
                     Mod2csv(project, modis_sds, region_mod_ind, region=region)
@@ -206,7 +210,9 @@ def Veclc2csv( project ):
     else:
         print 'Writing %s lcm features to 1 CSV per dataset:' % lcm_sz
         print 'lc.csv: '
-        Land2csv( project, mod_ind_list )
+        numrows = Land2csv(project, mod_ind_list, region=None)
+        if numrows:
+            toprint = 'rows in %s, rows out %s' % (lcm_sz,numrows)
         for mod_type in project['modis'].keys():
             for modis_sds in project['modis'][mod_type].values():
                 sys.stdout.write("%s.csv . . " % modis_sds)
@@ -234,8 +240,6 @@ def Get_unique_ids(mc_dsn, fid_list ):
     '''
 
     mc_ds, mc_lyr = Ogr_open(mc_dsn)
-
-    fields = 'mod_id, mod_x_ind, mod_y_ind, mod_area, era_id, era_x_ind, era_y_ind'
 
     mod_id_list = []
     era_id_list = []
@@ -292,9 +296,6 @@ def Get_mcfid_list(c):
 
 
 def Raslc2csv( project ):
-    hdf_name = project['prj_name']+'_lc.hdf5'
-    lc_path = os.path.join( project['hdf_dir'], hdf_name )
-
     mc_name = project['prj_name']+'_mc'
     mc_dsn  = os.path.join(project['shp_dir'], mc_name)
 
@@ -307,22 +308,135 @@ def Raslc2csv( project ):
 
     fid_list = Get_mcfid_list(c)
 
+    conn.close()
+    del c
+
     era_ind_list, mod_ind_list =Get_unique_ids(mc_dsn, fid_list)
 
     ## Write each ERA dataset to CSV, one row per cell within aoi
     for era_sds in project['era'].keys():
         Era2csv(project, era_sds, era_ind_list)
 
+    ## Export MOD and LC to csv
+    # mc_sz used to determine regionisation
+    Lcmod_manager( project, mc_sz, mod_ind_list )
 
-    # lc
-    hdr = ['id','area','lc_id','modis_id','era_id']
-    lc_attrs = ''
-    for attrib in project['lc'].keys():
+
+def Land2csv(project, mod_ind_list, region=None):
+    if project['lc_type']=='shp':
+        Vlc2csv(project, mod_ind_list, region)
+    elif project['lc_type']=='tif_dir':
+        num_rows = Rlc2csv(project, mod_ind_list, region)
+        return num_rows
+
+
+def Rlc2csv(project, mod_ind_list, region=None):
+
+    ### FIRST BIG SECTION: IDENTIFY FILE PATHS AND OPEN FILES
+    # Open lc.hdf5 as source for landcover parameters and cell size
+    hdf_name = project['prj_name']+'_lc.hdf5'
+    lc_path = os.path.join( project['hdf_dir'], hdf_name )
+    lc_stack= h5py.File(lc_path,'r')
+
+    # Open mc.shape to link modis_id to intersect rows lcmc.db rows
+    mc_dsn  = project['prj_name']+'_mc'
+    mc_path = os.path.join(project['shp_dir'],mc_dsn)
+    mc_ds  = ogr.Open(mc_path+'.shp',gdalconst.GA_ReadOnly)
+
+    # Couldn't era_id and mod_id be incorporated in lcmc.db?
+    # then this pain in the ass would go MUCH quicker, without shapefile queries...
+
+    # Open lcmc.db as climate-modis X landcover intersect
+    isect_fn = os.path.join(project['prj_directory'],'lcmc.db')
+    conn = sqlite3.connect(isect_fn)
+    c    = conn.cursor()
+
+    # Define output file, depending on regionalization
+    if region==None:
+        lc_csv_fn = os.path.join(project['csv_dir'],
+                                 project['prj_name']+'_lc.csv')
+    else:
+        out_dir =  os.path.join(project['csv_dir'],'lc')
+        if not os.path.isdir(out_dir):
+            os.mkdir(out_dir)
+        lc_csv_fn = os.path.join(out_dir,
+                                 project['prj_name']+'_lc_'+str(region)+'.csv')
+
+    lc_csv_f = open(lc_csv_fn,'wt')
+    lc_csv   = csv.writer(lc_csv_f)
+
+
+    ### DEFINE SOME VARIABLES
+    lc_nan =lc_stack['lc'].attrs['fill_value']
+    scale_factor = 'None?'
+    add_offset = 'None?'
+    cell_size = np.abs(lc_stack['lc'].attrs['dx'] * lc_stack['lc'].attrs['dx'])
+    mc_sql_ = 'SELECT id, era_id FROM '+mc_dsn+' WHERE mod_id=%i'
+    hdr = ['id','area','modis_id','era_id']
+    for attrib in lc_stack['fields']:
         hdr.append(attrib)
-        lc_attrs += ',lc_'+project['lc'][attrib]
+
+    lc_csv.writerow(hdr)
+    ### START THE LOOP!
+    ### THIS IS TAKING WAY TOO LONG
+    ### HOW MANY DAMN FEATURES ARE THERE?
+    ### SHOULD BE LESS THAN 540!
+    row_id=0
+    progress_bar = Countdown(len(mod_ind_list), update_interval=.01)
+    for i in range(len(mod_ind_list)):
+        mod_id = mod_ind_list[i][0]
+        mc_sql = mc_sql_ % mod_id
+        mc_lyr = mc_ds.ExecuteSQL(mc_sql)
+        mc_feat= mc_lyr.GetNextFeature()
+        while mc_feat:
+            fid = mc_feat.GetField('id')
+            era_id   = mc_feat.GetField('era_id')
+            # Get lcmc features within modis/era cells
+            c.execute('SELECT px,py FROM inside WHERE fid=%s' % fid)
+            area = cell_size
+            lcmc_feat = c.fetchone()
+            mc_feat= mc_lyr.GetNextFeature()
+            while lcmc_feat:
+                row_id += 1
+                px = lcmc_feat[0]
+                py = lcmc_feat[1]
+                # out = [row_id,area,mod_id,era_id]
+                out = lc_stack['lc'][:,py,px]
+                out = list(np.where(out==lc_nan,np.nan,out)) #*scale+offset)
+                for val in [era_id, mod_id, area, row_id]:
+                    out.insert(0,val)
+
+                lc_csv.writerow(out)
+                lcmc_feat = c.fetchone()
+            c.execute('SELECT px,py,area FROM border WHERE fid=%s' % fid)
+            lcmc_feat = c.fetchone()
+            while lcmc_feat:
+                row_id += 1
+                px = lcmc_feat[0]
+                py = lcmc_feat[1]
+                area = lcmc_feat[2]
+                # out = [row_id,area,mod_id,era_id]
+                out = lc_stack['lc'][:,py,px]
+                out = list(np.where(out==lc_nan,np.nan,out)) #*scale+offset)
+                for val in [era_id, mod_id, area, row_id]:
+                    out.insert(0,val)
+
+                lc_csv.writerow(out)
+                lc_csv.writerow(out)
+                lcmc_feat = c.fetchone()
+        progress_bar.check(i)
+
+    conn.close()
+    del c
+    progress_bar.flush()
+    lc_csv_f.close()
+
+    return row_id
 
 
-def Land2csv(project, mod_ind_list, region = None):
+def Vlc2csv(project, mod_ind_list, region=None):
+
+
     lcm_dsn  = project['prj_name']+'_lcm'
     lcm_path = os.path.join(project['shp_dir'],lcm_dsn)
     lcm_ds  = ogr.Open(lcm_path+'.shp',gdalconst.GA_ReadOnly)
