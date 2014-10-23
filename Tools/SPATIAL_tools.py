@@ -689,12 +689,24 @@ def Dbf2db(poly_dsn, fields='all', idxs=None):
     # Make Database and Table
     c.execute('''CREATE TABLE inside
                   ''')
-    sql = 'CREATE TABLE ' + ds_name + ' (%s)' # (fid integer, px integer, py integer)
+    sql_fmt = 'CREATE TABLE ' + ds_name + ' (%s)' # (fid integer, px integer, py integer)
+    aname = attribs.keys()[0]
+    col_fmt = '%s %s' % (aname, attribs[aname]['type'])
+    for i in range(len(1,len(attribs.keys()))):
+        aname = attribs.keys()[i]
+        col_fmt = col_fmt + ', %s %s' %  (aname, attribs[aname]['type'])
 
-    #conn.execute('INSERT INTO "foo" VALUES(' + ','.join("?" * len(data)) + ')', data)
-
+    sql = sql_fmt % col_fmt
     c.execute(sql)
+
+    # LOOP THROUGH FEATURES AND POPULATE DATABASE
+
     # make index on mod_id
 
     if idxs!=None:
-        idx_sql = '''CREATE INDEX IF NOT EXISTS idx_name ON table_name (col_name)'''
+        for idx in idxs:
+            idx_name = idx[0]
+            idx_col  = idx[1]
+            idx_sql = '''CREATE INDEX IF NOT EXISTS %s ON %s (%s)'''
+            sql = idx_sql % (idx_name, ds_name, idx_col)
+            c.execute(sql)
