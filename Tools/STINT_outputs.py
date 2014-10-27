@@ -311,6 +311,8 @@ def Raslc2csv( project ):
     conn.close()
     del c
 
+    # IF csv output is too slow, implement indexed sqlite conversion
+    # for Get_unique_ids and Rlc2csv
     era_ind_list, mod_ind_list =Get_unique_ids(mc_dsn, fid_list)
 
     ## Write each ERA dataset to CSV, one row per cell within aoi
@@ -339,6 +341,8 @@ def Rlc2csv(project, mod_ind_list, region=None):
     lc_stack= h5py.File(lc_path,'r')
 
     # Open mc.shape to link modis_id to intersect rows lcmc.db rows
+    # IF csv output is too slow, implement indexed sqlite conversion
+    # for mod_id lookups
     mc_dsn  = project['prj_name']+'_mc'
     mc_path = os.path.join(project['shp_dir'],mc_dsn)
     mc_ds  = ogr.Open(mc_path+'.shp',gdalconst.GA_ReadOnly)
@@ -378,9 +382,8 @@ def Rlc2csv(project, mod_ind_list, region=None):
 
     lc_csv.writerow(hdr)
     ### START THE LOOP!
-    ### THIS IS TAKING WAY TOO LONG
-    ### HOW MANY DAMN FEATURES ARE THERE?
-    ### SHOULD BE LESS THAN 540!
+    ### IF this is taking too long per cycle, implement sqlite in place of
+    ### ogr modis_id -> attributes linking
     row_id=0
     progress_bar = Countdown(len(mod_ind_list), update_interval=.01)
     for i in range(len(mod_ind_list)):

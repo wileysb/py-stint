@@ -391,6 +391,12 @@ def tif_stage_5():
     print 'Intersecting Modis & Climate grids -> mc.shp'
     Tools.SPATIAL_tools.Isect_poly_idx( **lcc_params )
 
+    ## IF csv output is too slow, implement database lookup:
+    # summarize mc.shp in sqlite database:
+    # fields = ['mod_id','era_id','mod_area','mod_x_ind','mod_y_ind','era_x_ind','era_y_ind']
+    # idxs = [['fid_idx','fid'],['mid_idx','mod_id']]
+    # Tools.SPATIAL_tools.Dbf2db(mc_dsn,fields=fields,idxs=idxs)
+
 
 def shp_stage_6():
     pre  = project['prj_name']+'_' # start to all the project files
@@ -424,7 +430,6 @@ def tif_stage_6():
     ras_fn = project['lc_src']
     poly_dsn = os.path.join( project['shp_dir'],pre+'mc' )
     isect_fn = os.path.join(project['prj_directory'],'lcmc.db')
-    # Play with lcmc.sqlite instead of .p:
     Tools.SPATIAL_tools.Isect_ras_poly(ras_fn,poly_dsn,isect_fn)
 
 

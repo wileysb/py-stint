@@ -642,6 +642,9 @@ def Mk_polygrid(params):
 
 def Dbf2db(poly_dsn, fields='all', idxs=None):
     '''
+    poly_dsn = os.path.join( project['shp_dir'],'k3tif_mc' )
+    fields = ['mod_id','era_id','mod_area']
+    idxs = [['fid_idx','fid'],['mid_idx','mod_id']]
 
     :param src_dsn:
     :param dst_fn:
@@ -687,12 +690,9 @@ def Dbf2db(poly_dsn, fields='all', idxs=None):
                 jnk = fields.pop(ind)
 
     # Make Database and Table
-    c.execute('''CREATE TABLE inside
-                  ''')
-    sql_fmt = 'CREATE TABLE ' + ds_name + ' (%s)' # (fid integer, px integer, py integer)
-    aname = attribs.keys()[0]
-    col_fmt = '%s %s' % (aname, attribs[aname]['type'])
-    for i in range(len(1,len(attribs.keys()))):
+    sql_fmt = 'CREATE TABLE ' + ds_name + ' (%s)'
+    col_fmt = 'fid integer'
+    for i in range(len(attribs.keys())):
         aname = attribs.keys()[i]
         col_fmt = col_fmt + ', %s %s' %  (aname, attribs[aname]['type'])
 
@@ -700,7 +700,17 @@ def Dbf2db(poly_dsn, fields='all', idxs=None):
     c.execute(sql)
 
     # LOOP THROUGH FEATURES AND POPULATE DATABASE
-
+    out = []
+    for fid in range(0,poly_lyr.GetFeatureCount()):
+        feat = poly_lyr.GetFeature(fid)
+        loop_out = [fid,]
+        for aname in attribs.keys():
+            loop_out.append(feat.GetField(aname))
+        out.append(loop_out)
+    insert_fmt = 'INSERT INTO ' + ds_name + ' VALUES (%s)'
+    insert_sql = insert_fmt % ','.join('?'*(1+len(attribs.keys())))
+    c.executemany(insert_sql,out)
+    conn.commit()
     # make index on mod_id
 
     if idxs!=None:
@@ -710,3 +720,6 @@ def Dbf2db(poly_dsn, fields='all', idxs=None):
             idx_sql = '''CREATE INDEX IF NOT EXISTS %s ON %s (%s)'''
             sql = idx_sql % (idx_name, ds_name, idx_col)
             c.execute(sql)
+        conn.commit()
+    conn.close()
+    del conn,c,poly_lyr,poly_ds
