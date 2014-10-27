@@ -691,7 +691,7 @@ def Dbf2db(poly_dsn, fields='all', idxs=None):
 
     # Make Database and Table
     sql_fmt = 'CREATE TABLE ' + ds_name + ' (%s)'
-    col_fmt = 'fid integer'
+    col_fmt = 'id integer'
     for i in range(len(attribs.keys())):
         aname = attribs.keys()[i]
         col_fmt = col_fmt + ', %s %s' %  (aname, attribs[aname]['type'])

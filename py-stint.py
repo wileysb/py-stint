@@ -126,6 +126,7 @@ from Tools.ERA_librarian import Val_era
 from Tools.MODIS_subsetter import Mod2hdf
 from Tools.ERA_subsetter import Era2hdf
 from Tools.STINT_outputs import Veclc2csv
+from Tools.STINT_outputs import Raslc2csv
 # from Tools.pyModis_downmodis import downModis
 
 def prj_mkdir(dir_path):
@@ -265,6 +266,7 @@ def Run_stage(stage_num):
             # Export era, modis, and intersected landcover to csv!
             Veclc2csv(project)
         elif project['lc_type']=='tif_dir':
+            Raslc2csv(project)
             todo = 'code Raslc2csv'
             #isect_fn = os.path.join(project['prj_directory'],'lcmc.p')
             #Raslc2csv(project)
@@ -393,9 +395,9 @@ def tif_stage_5():
 
     ## IF csv output is too slow, implement database lookup:
     # summarize mc.shp in sqlite database:
-    # fields = ['mod_id','era_id','mod_area','mod_x_ind','mod_y_ind','era_x_ind','era_y_ind']
-    # idxs = [['fid_idx','fid'],['mid_idx','mod_id']]
-    # Tools.SPATIAL_tools.Dbf2db(mc_dsn,fields=fields,idxs=idxs)
+    fields = ['mod_id','era_id','mod_area','mod_x_ind','mod_y_ind','era_x_ind','era_y_ind']
+    idxs = [['id_idx','id'],['mid_idx','mod_id'],['eid_idx','era_id']]
+    Tools.SPATIAL_tools.Dbf2db(mc_dsn,fields=fields,idxs=idxs)
 
 
 def shp_stage_6():
