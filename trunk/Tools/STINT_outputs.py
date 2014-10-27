@@ -223,6 +223,37 @@ def Lcmod_manager( project, lcm_sz, mod_ind_list ):
         sys.stdout.flush()
 
 
+def Get_unique_ids_sql(mc_dsn, fid_list):
+    conn = sqlite3.connect(mc_dsn+'.db')
+    c = conn.cursor()
+
+    mod_id_sql = 'SELECT DISTINCT mod_id FROM ' + mc_dsn + ' WHERE id IN (' + ','.join('?'*len(fid_list)) + ')'
+
+    c.execute(mod_id_sql,fid_list)
+    mod_id_list = c.fetchall()
+
+    era_id_sql = 'SELECT DISTINCT era_id FROM ' + mc_dsn + ' WHERE id IN (' + ','.join('?'*len(fid_list)) + ')'
+
+    c.execute(era_id_sql,fid_list)
+    era_id_list = c.fetchall()
+
+    mod_ind_sql = 'SELECT mod_id,mod_x_ind,mod_y_ind,mod_area FROM ' + mc_dsn +'WHERE mod_id IN (' + ','.join('?'*len(mod_id_list)) + ')'
+
+    c.execute(mod_ind_sql,mod_id_list)
+    mod_ind_list = c.fetchall()
+
+    era_ind_sql = 'SELECT era_id,era_x_ind,era_y_ind FROM ' + mc_dsn + 'WHERE era_id IN (' + ','.join('?'*len(era_id_list)) + ')'
+
+    c.execute(era_ind_sql,era_id_list)
+    era_ind_list = c.fetchall()
+
+    # sort both lists by mod_id and era_id:
+    era_ind_list = sorted(era_ind_list, key=lambda feat: feat[0])
+    mod_ind_list = sorted(mod_ind_list, key=lambda feat: feat[0])
+
+    return era_ind_list, mod_ind_list
+
+
 def Get_unique_ids(mc_dsn, fid_list ):
     '''WORDS!
 
@@ -313,7 +344,8 @@ def Raslc2csv( project ):
 
     # IF csv output is too slow, implement indexed sqlite conversion
     # for Get_unique_ids and Rlc2csv
-    era_ind_list, mod_ind_list =Get_unique_ids(mc_dsn, fid_list)
+    # era_ind_list, mod_ind_list =Get_unique_ids(mc_dsn, fid_list)
+    era_ind_list, mod_ind_list =Get_unique_ids_sql(mc_dsn, fid_list)
 
     ## Write each ERA dataset to CSV, one row per cell within aoi
     for era_sds in project['era'].keys():
@@ -345,7 +377,10 @@ def Rlc2csv(project, mod_ind_list, region=None):
     # for mod_id lookups
     mc_dsn  = project['prj_name']+'_mc'
     mc_path = os.path.join(project['shp_dir'],mc_dsn)
-    mc_ds  = ogr.Open(mc_path+'.shp',gdalconst.GA_ReadOnly)
+
+    mc_conn = sqlite3.connect(mc_path)
+    mc_ds    = mc_conn.cursor()
+    #mc_ds  = ogr.Open(mc_path+'.shp',gdalconst.GA_ReadOnly)
 
     # Couldn't era_id and mod_id be incorporated in lcmc.db?
     # then this pain in the ass would go MUCH quicker, without shapefile queries...
@@ -375,7 +410,8 @@ def Rlc2csv(project, mod_ind_list, region=None):
     scale_factor = 'None?'
     add_offset = 'None?'
     cell_size = np.abs(lc_stack['lc'].attrs['dx'] * lc_stack['lc'].attrs['dx'])
-    mc_sql_ = 'SELECT id, era_id FROM '+mc_dsn+' WHERE mod_id=%i'
+    # mc_sql_ = 'SELECT id, era_id FROM '+mc_dsn+' WHERE mod_id=%i'
+    mc_sql = 'SELECT id, era_id FROM '+mc_dsn+' WHERE mod_id=?'
     hdr = ['id','area','modis_id','era_id']
     for attrib in lc_stack['fields']:
         hdr.append(attrib)
@@ -388,17 +424,18 @@ def Rlc2csv(project, mod_ind_list, region=None):
     progress_bar = Countdown(len(mod_ind_list), update_interval=.01)
     for i in range(len(mod_ind_list)):
         mod_id = mod_ind_list[i][0]
-        mc_sql = mc_sql_ % mod_id
-        mc_lyr = mc_ds.ExecuteSQL(mc_sql)
-        mc_feat= mc_lyr.GetNextFeature()
+        # mc_sql = mc_sql_ % mod_id
+        # mc_lyr = mc_ds.ExecuteSQL(mc_sql)
+        mc_lyr = mc_ds.execute(mc_sql,mod_id)
+        mc_feat= mc_lyr.fetchone()
         while mc_feat:
-            fid = mc_feat.GetField('id')
-            era_id   = mc_feat.GetField('era_id')
+            fid = mc_feat[0]
+            era_id   = mc_feat[1]
             # Get lcmc features within modis/era cells
             c.execute('SELECT px,py FROM inside WHERE fid=%s' % fid)
             area = cell_size
             lcmc_feat = c.fetchone()
-            mc_feat= mc_lyr.GetNextFeature()
+            mc_feat= mc_lyr.fetchone()
             while lcmc_feat:
                 row_id += 1
                 px = lcmc_feat[0]
