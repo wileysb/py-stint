@@ -36,7 +36,7 @@ from ORG_tools import Countdown
 from SPATIAL_tools import Ogr_open
 
 
-def Unique_values(src_dsn,field):
+def Unique_values(src_dsn, field):
     '''
     value_list = uniqueValues(src_dsn, fieldname)
     ### This program returns a list of all unique values within a specified
@@ -191,6 +191,7 @@ def Lcmod_manager( project, lcm_sz, mod_ind_list ):
         # For each region, export one set of CSV files
         # for the modis ids within that region
         progress_bar = Countdown(num_reg)
+        numallrows = 0
         for region in range(num_reg):
             s = int(region * mod_per_reg)
             e = int((region+1) * mod_per_reg)
@@ -199,12 +200,14 @@ def Lcmod_manager( project, lcm_sz, mod_ind_list ):
             region_mod_ind = mod_ind_list[s:e]
             numrows = Land2csv(project, region_mod_ind, region=region)
             if numrows:
-                print 'rows in %s, rows out %s' % (lcm_sz,numrows)
+                numallrows = numallrows + numrows
             for mod_type in project['modis'].keys():
                 for modis_sds in project['modis'][mod_type].values():
                     Mod2csv(project, modis_sds, region_mod_ind, region=region)
             progress_bar.check(region)
         progress_bar.flush()
+        if numrows:
+            print 'rows in %s, rows out %s' % (lcm_sz,numrows)
 
 
     else:
@@ -212,7 +215,7 @@ def Lcmod_manager( project, lcm_sz, mod_ind_list ):
         print 'lc.csv: '
         numrows = Land2csv(project, mod_ind_list, region=None)
         if numrows:
-            toprint = 'rows in %s, rows out %s' % (lcm_sz,numrows)
+            print 'rows in %s, rows out %s' % (lcm_sz,numrows)
         for mod_type in project['modis'].keys():
             for modis_sds in project['modis'][mod_type].values():
                 sys.stdout.write("%s.csv . . " % modis_sds)
@@ -227,22 +230,26 @@ def Get_unique_ids_sql(mc_dsn, fid_list):
     conn = sqlite3.connect(mc_dsn+'.db')
     c = conn.cursor()
 
-    mod_id_sql = 'SELECT DISTINCT mod_id FROM ' + mc_dsn + ' WHERE id IN (' + ','.join('?'*len(fid_list)) + ')'
+    db_name = os.path.basename(mc_dsn)
+
+    mod_id_sql = 'SELECT DISTINCT mod_id FROM ' + db_name + ' WHERE id IN (' + ','.join('?'*len(fid_list)) + ')'
 
     c.execute(mod_id_sql,fid_list)
-    mod_id_list = c.fetchall()
+    mod_id_list = [f[0] for f in c.fetchall()]
 
-    era_id_sql = 'SELECT DISTINCT era_id FROM ' + mc_dsn + ' WHERE id IN (' + ','.join('?'*len(fid_list)) + ')'
+    era_id_sql = 'SELECT DISTINCT era_id FROM ' + db_name + ' WHERE id IN (' + ','.join('?'*len(fid_list)) + ')'
 
     c.execute(era_id_sql,fid_list)
-    era_id_list = c.fetchall()
+    era_id_list =  [f[0] for f in c.fetchall()]
 
-    mod_ind_sql = 'SELECT mod_id,mod_x_ind,mod_y_ind,mod_area FROM ' + mc_dsn +'WHERE mod_id IN (' + ','.join('?'*len(mod_id_list)) + ')'
+    # Limit 1 or something?
+    mod_ind_sql = 'SELECT DISTINCT mod_id,mod_x_ind,mod_y_ind,mod_area FROM ' + db_name +' WHERE mod_id IN (' + ','.join('?'*len(mod_id_list)) + ')'
 
     c.execute(mod_ind_sql,mod_id_list)
     mod_ind_list = c.fetchall()
 
-    era_ind_sql = 'SELECT era_id,era_x_ind,era_y_ind FROM ' + mc_dsn + 'WHERE era_id IN (' + ','.join('?'*len(era_id_list)) + ')'
+    # limit 1 or something?
+    era_ind_sql = 'SELECT DISTINCT era_id,era_x_ind,era_y_ind FROM ' + db_name + ' WHERE era_id IN (' + ','.join('?'*len(era_id_list)) + ')'
 
     c.execute(era_ind_sql,era_id_list)
     era_ind_list = c.fetchall()
@@ -303,10 +310,10 @@ def Get_unique_ids(mc_dsn, fid_list ):
 
 
 def Get_mc_sz(c):
-    sz_qry = '''SELECT COUNT(*) FROM inside
-                UNION ALL
-                SELECT COUNT(*) FROM border'''
-
+    #sz_qry = '''SELECT COUNT(*) FROM inside
+    #            UNION ALL
+    #           SELECT COUNT(*) FROM border'''
+    sz_qry = '''SELECT COUNT(*) FROM isect'''
     c.execute(sz_qry)
     sz_inside, sz_border = c.fetchall()
     mc_sz = sz_inside[0] + sz_border[0]
@@ -315,10 +322,11 @@ def Get_mc_sz(c):
 
 
 def Get_mcfid_list(c):
-    fid_qry = '''SELECT DISTINCT fid FROM
-                (SELECT fid FROM inside
-                UNION ALL
-                SELECT fid FROM border)'''
+    #fid_qry = '''SELECT DISTINCT fid FROM
+    #            (SELECT fid FROM inside
+    #            UNION ALL
+    #           SELECT fid FROM border)'''
+    fid_qry = '''SELECT DISTINCT fid FROM isect'''
     c.execute(fid_qry)
 
     fid_list = c.fetchall()
@@ -335,24 +343,61 @@ def Raslc2csv( project ):
     conn = sqlite3.connect(isect_fn)
     c    = conn.cursor()
 
-    mc_sz = Get_mc_sz(c)
+    prog_i=0
+    progress_bar = Countdown(100)
+    progress_bar.check(prog_i)
 
+    # Get number of features
+    mc_sz = Get_mc_sz(c)
+    prog_i+=5; progress_bar.check(prog_i)
+
+    # Get list of feature IDs
     fid_list = Get_mcfid_list(c)
+    prog_i+=55; progress_bar.check(prog_i)
 
     conn.close()
     del c
 
-    # IF csv output is too slow, implement indexed sqlite conversion
-    # for Get_unique_ids and Rlc2csv
-    # era_ind_list, mod_ind_list =Get_unique_ids(mc_dsn, fid_list)
+    # Get era and mod ind_list'
     era_ind_list, mod_ind_list =Get_unique_ids_sql(mc_dsn, fid_list)
+    prog_i+=25; progress_bar.check(prog_i)
 
     ## Write each ERA dataset to CSV, one row per cell within aoi
     for era_sds in project['era'].keys():
+        # this is screwed up - maybe wrong era_ind_list?
         Era2csv(project, era_sds, era_ind_list)
+    progress_bar.flush()
 
     ## Export MOD and LC to csv
     # mc_sz used to determine regionisation
+    # Open lc.hdf5 as source for landcover parameters and cell size
+    hdf_name = project['prj_name']+'_lc.hdf5'
+    lc_path = os.path.join( project['hdf_dir'], hdf_name )
+    lc_stack= h5py.File(lc_path,'r')
+    lc_arr  = lc_stack['lc'][:]
+    lc_nan =lc_stack['lc'].attrs['fill_value']
+    # scale_factor = 'None?'
+    # add_offset = 'None?'
+    project['lc_cell_size'] = np.abs(lc_stack['lc'].attrs['dx'] * lc_stack['lc'].attrs['dx'])
+    for i in range(len(lc_arr)):
+        lc_arr[i,:,:] = np.where(lc_arr[i,:,:]==lc_nan,np.nan,lc_arr[i,:,:])
+
+    project['lc_arr'] = lc_arr
+    project['lc_stack_fields'] = lc_stack['fields']
+
+    ### Get lc_lines
+    mc_dsn  = project['prj_name']+'_mc'
+    mc_path = os.path.join(project['shp_dir'],mc_dsn)
+    c.execute('''ATTACH DATABASE '?' AS 'mc''''',(mc_path+'.db',))
+
+    lc_sql = '''SELECT isect.area,mc.mod_id,mc.era_id,isect.px,isect.py
+                FROM mc.k3tif_mc mc
+                JOIN
+                isect
+                ON isect.fid=mc.id
+                ORDER BY mc.mod_id'''
+
+    print 'writing LC and mod'
     Lcmod_manager( project, mc_sz, mod_ind_list )
 
 
@@ -365,25 +410,30 @@ def Land2csv(project, mod_ind_list, region=None):
 
 
 def Rlc2csv(project, mod_ind_list, region=None):
+    '''
+    python -m cProfile -o stage7.prof py-stint.py ../STINT/k3tif/k3tif_INPUT.txt 7
+
+    Instead of np.where on whole lc_arr:
+        Loop through lc_arr layers, and npwhere that layer!
+        Prepares the code against different nans, and reduces memory explosion
+
+    %lprun -f Rlc2csv Rlc2csv(project, region_mod_ind,region=region)
+    ## replace lcmc.fetchone() with fetchall calls, then iterate through the lines
+
+
+    Actually...much of this can be recycled for all the regions?
+    '''
+
+    lc_arr = project['lc_arr']
+    cell_size = project ['lc_cell_size']
 
     ### FIRST BIG SECTION: IDENTIFY FILE PATHS AND OPEN FILES
-    # Open lc.hdf5 as source for landcover parameters and cell size
-    hdf_name = project['prj_name']+'_lc.hdf5'
-    lc_path = os.path.join( project['hdf_dir'], hdf_name )
-    lc_stack= h5py.File(lc_path,'r')
-
-    # Open mc.shape to link modis_id to intersect rows lcmc.db rows
-    # IF csv output is too slow, implement indexed sqlite conversion
-    # for mod_id lookups
+    # Open mc.db to link modis_id to intersect rows lcmc.db rows
     mc_dsn  = project['prj_name']+'_mc'
     mc_path = os.path.join(project['shp_dir'],mc_dsn)
 
-    mc_conn = sqlite3.connect(mc_path)
+    mc_conn = sqlite3.connect(mc_path+'.db')
     mc_ds    = mc_conn.cursor()
-    #mc_ds  = ogr.Open(mc_path+'.shp',gdalconst.GA_ReadOnly)
-
-    # Couldn't era_id and mod_id be incorporated in lcmc.db?
-    # then this pain in the ass would go MUCH quicker, without shapefile queries...
 
     # Open lcmc.db as climate-modis X landcover intersect
     isect_fn = os.path.join(project['prj_directory'],'lcmc.db')
@@ -406,68 +456,58 @@ def Rlc2csv(project, mod_ind_list, region=None):
 
 
     ### DEFINE SOME VARIABLES
-    lc_nan =lc_stack['lc'].attrs['fill_value']
-    scale_factor = 'None?'
-    add_offset = 'None?'
-    cell_size = np.abs(lc_stack['lc'].attrs['dx'] * lc_stack['lc'].attrs['dx'])
-    # mc_sql_ = 'SELECT id, era_id FROM '+mc_dsn+' WHERE mod_id=%i'
+
     mc_sql = 'SELECT id, era_id FROM '+mc_dsn+' WHERE mod_id=?'
     hdr = ['id','area','modis_id','era_id']
-    for attrib in lc_stack['fields']:
+    for attrib in project['lc_stack_fields']:
         hdr.append(attrib)
 
     lc_csv.writerow(hdr)
     ### START THE LOOP!
-    ### IF this is taking too long per cycle, implement sqlite in place of
-    ### ogr modis_id -> attributes linking
     row_id=0
     progress_bar = Countdown(len(mod_ind_list), update_interval=.01)
     for i in range(len(mod_ind_list)):
         mod_id = mod_ind_list[i][0]
-        # mc_sql = mc_sql_ % mod_id
-        # mc_lyr = mc_ds.ExecuteSQL(mc_sql)
-        mc_lyr = mc_ds.execute(mc_sql,mod_id)
-        mc_feat= mc_lyr.fetchone()
-        while mc_feat:
+        mc_lyr = mc_ds.execute(mc_sql,(mod_id,))
+        mc_feat= mc_lyr.fetchone() #!
+        #! mc_feats = mc_lyr.fetchall() #!
+        while mc_feat: #!
+        #! for mc_feat in mc_feats: #! for line in lines
             fid = mc_feat[0]
             era_id   = mc_feat[1]
             # Get lcmc features within modis/era cells
-            c.execute('SELECT px,py FROM inside WHERE fid=%s' % fid)
+            c.execute('SELECT px,py FROM inside WHERE fid=?', (fid,))
             area = cell_size
-            lcmc_feat = c.fetchone()
-            mc_feat= mc_lyr.fetchone()
-            while lcmc_feat:
+            lcmc_feat = c.fetchone() #!
+            mc_feat= mc_lyr.fetchone() #!
+            #! lcmc_feats = c.fetchall() #!
+            while lcmc_feat: #!
+            #! for lcmc_feat in lcmc_feats: #! for line in lines
                 row_id += 1
                 px = lcmc_feat[0]
                 py = lcmc_feat[1]
-                # out = [row_id,area,mod_id,era_id]
-                out = lc_stack['lc'][:,py,px]
-                out = list(np.where(out==lc_nan,np.nan,out)) #*scale+offset)
+                out = list(lc_arr[:,py,px])
                 for val in [era_id, mod_id, area, row_id]:
                     out.insert(0,val)
-
                 lc_csv.writerow(out)
-                lcmc_feat = c.fetchone()
-            c.execute('SELECT px,py,area FROM border WHERE fid=%s' % fid)
-            lcmc_feat = c.fetchone()
-            while lcmc_feat:
+                lcmc_feat = c.fetchone() #!
+            c.execute('SELECT px,py,area FROM border WHERE fid=?', (fid,))
+            lcmc_feat = c.fetchone() #!
+            #! lcmc_feats = c.fetchall() #!
+            while lcmc_feat: #!
+            #! for lcmc_feat in lcmc_feats: #! for line in lines
                 row_id += 1
                 px = lcmc_feat[0]
                 py = lcmc_feat[1]
                 area = lcmc_feat[2]
-                # out = [row_id,area,mod_id,era_id]
-                out = lc_stack['lc'][:,py,px]
-                out = list(np.where(out==lc_nan,np.nan,out)) #*scale+offset)
+                out = list(lc_arr[:,py,px]) # maybe the list conversion is dumb?
                 for val in [era_id, mod_id, area, row_id]:
                     out.insert(0,val)
-
                 lc_csv.writerow(out)
-                lc_csv.writerow(out)
-                lcmc_feat = c.fetchone()
+                lcmc_feat = c.fetchone() #!
         progress_bar.check(i)
-
     conn.close()
-    del c
+    del c,mc_lyr, lc_arr
     progress_bar.flush()
     lc_csv_f.close()
 

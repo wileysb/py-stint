@@ -361,6 +361,7 @@ def Isect_ras_poly(ras_fn,poly_dsn,dst_fn):
 
     ras_x    = np.arange(ras['xmin'],ras['xmax'],ras['dx'])
     ras_y    = np.arange(ras['ymax'],ras['ymin'],-1*ras['dy'])
+    cell_size = np.abs(ras['dy']) * np.abs(ras['dx'])
 
     ras_box  = Mk_bbox(min(ras_x),min(ras_y),max(ras_x),max(ras_y))
 
@@ -373,19 +374,21 @@ def Isect_ras_poly(ras_fn,poly_dsn,dst_fn):
         dst = 'db'
         conn = sqlite3.connect(dst_fn)
         c = conn.cursor()
-        c.execute('''CREATE TABLE inside
-                  (fid integer, px integer, py integer)''')
-                  # id integer primary key autoincrement not null,
-        c.execute('''CREATE TABLE border
-                  (fid integer, px integer, py integer, area real)''')
+        #c.execute('''CREATE TABLE inside
+        #          (fid integer, px integer, py integer)''')
+        #          # id integer primary key autoincrement not null,
+        #c.execute('''CREATE TABLE border
+        #          (fid integer, px integer, py integer, area real)''')
+        c.execute('''CREATE TABLE isect
+                    (fid integer, px integer, py integer, area real)''')
         conn.commit()
     else:
         dst='p' # default to pickle
 
     for fid in range(0,poly_lyr.GetFeatureCount()):
         # out[fid] = [[within],[intersecting]]
-        # within   = [x,y], x,y in raster coordinates (ncol,nrow)
-        # isecting = [x,y,area]
+        # within   = [fid,x,y,area], x,y in raster coordinates (ncol,nrow)
+        # isecting = [fid,x,y,area]
         feat = poly_lyr.GetFeature(fid)
         geom = feat.GetGeometryRef()
         if geom.Intersects(ras_box):
@@ -407,7 +410,7 @@ def Isect_ras_poly(ras_fn,poly_dsn,dst_fn):
                             if dst=='p':
                                 coords=(px,py)
                             elif dst=='db':
-                                coords=(fid,px,py)
+                                coords=(fid,px,py,cell_size)
                             out[fid][0].append(coords)
                         else:
                             isect = ras_cell.Intersection(geom)
@@ -429,16 +432,14 @@ def Isect_ras_poly(ras_fn,poly_dsn,dst_fn):
                     out[fid][0] = np.array(out[fid][0],dtype)
                     keep = True
                 elif dst=='db':
-                    c.executemany('INSERT INTO inside VALUES (?,?,?)',out[fid][0])
-                    # need to add fid to the start of the out[fid][0] lists!
+                    c.executemany('INSERT INTO isect VALUES (?,?,?,?)',out[fid][0])
             if len(out[fid][1]) > 0:
                 if dst=='p':
                     dtype=[('x',np.int64),('y',np.int64),('area',np.float64)]
                     out[fid][1] = np.array(out[fid][1],dtype)
                     keep = True
                 elif dst=='db':
-                    # need to add fid to the start of the out[fid][1] lists!
-                    c.executemany('INSERT INTO border VALUES (?,?,?,?)',out[fid][1])
+                    c.executemany('INSERT INTO isect VALUES (?,?,?,?)',out[fid][1])
             if not keep:
                 jnk = out.pop(fid)
         conn.commit()
@@ -449,6 +450,14 @@ def Isect_ras_poly(ras_fn,poly_dsn,dst_fn):
     if dst=='p':
         cPickle.dump(out,open(dst_fn,'w'))
     elif dst=='db':
+        ### CREATE INDEX
+        idx_sql = '''CREATE INDEX IF NOT EXISTS %s ON %s (%s)'''
+        idx_name = 'fid_idx'
+        ds_name = 'isect'
+        idx_col = 'fid'
+        sql = idx_sql % (idx_name, ds_name, idx_col)
+        c.execute(sql)
+        ### CLOSE CONNECTION
         conn.close()
     del out
     
