@@ -313,7 +313,7 @@ def Get_mc_sz(c):
     #mc_sz = sz_inside[0] + sz_border[0]
     mc_sz = c.fetchall()[0]
 
-    return mc_sz
+    return mc_sz[0]
 
 
 def Get_mcfid_list(c):
