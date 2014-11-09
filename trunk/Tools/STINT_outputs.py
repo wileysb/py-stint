@@ -191,31 +191,25 @@ def Lcmod_manager( project, lcm_sz, mod_ind_list ):
         # For each region, export one set of CSV files
         # for the modis ids within that region
         progress_bar = Countdown(num_reg)
-        numallrows = 0
         for region in range(num_reg):
             s = int(region * mod_per_reg)
             e = int((region+1) * mod_per_reg)
             if e>=len(mod_ind_list):
                 e=-1
             region_mod_ind = mod_ind_list[s:e]
-            numrows = Land2csv(project, region_mod_ind, region=region)
-            if numrows:
-                numallrows = numallrows + numrows
+            Land2csv(project, region_mod_ind, region=region)
+
             for mod_type in project['modis'].keys():
                 for modis_sds in project['modis'][mod_type].values():
                     Mod2csv(project, modis_sds, region_mod_ind, region=region)
             progress_bar.check(region)
         progress_bar.flush()
-        if numrows:
-            print 'rows in %s, rows out %s' % (lcm_sz,numrows)
 
 
     else:
         print 'Writing %s lcm features to 1 CSV per dataset:' % lcm_sz
         print 'lc.csv: '
-        numrows = Land2csv(project, mod_ind_list, region=None)
-        if numrows:
-            print 'rows in %s, rows out %s' % (lcm_sz,numrows)
+        Land2csv(project, mod_ind_list, region=None)
         for mod_type in project['modis'].keys():
             for modis_sds in project['modis'][mod_type].values():
                 sys.stdout.write("%s.csv . . " % modis_sds)
@@ -315,8 +309,9 @@ def Get_mc_sz(c):
     #           SELECT COUNT(*) FROM border'''
     sz_qry = '''SELECT COUNT(*) FROM isect'''
     c.execute(sz_qry)
-    sz_inside, sz_border = c.fetchall()
-    mc_sz = sz_inside[0] + sz_border[0]
+    #sz_inside, sz_border = c.fetchall()
+    #mc_sz = sz_inside[0] + sz_border[0]
+    mc_sz = c.fetchall()[0]
 
     return mc_sz
 
@@ -355,8 +350,8 @@ def Raslc2csv( project ):
     fid_list = Get_mcfid_list(c)
     prog_i+=55; progress_bar.check(prog_i)
 
-    conn.close()
-    del c
+    #conn.close()
+    #del c
 
     # Get era and mod ind_list'
     era_ind_list, mod_ind_list =Get_unique_ids_sql(mc_dsn, fid_list)
@@ -385,18 +380,29 @@ def Raslc2csv( project ):
     project['lc_arr'] = lc_arr
     project['lc_stack_fields'] = lc_stack['fields']
 
-    ### Get lc_lines
+    ### CREATE lcmc table for lc_lines
     mc_dsn  = project['prj_name']+'_mc'
     mc_path = os.path.join(project['shp_dir'],mc_dsn)
-    c.execute('''ATTACH DATABASE '?' AS 'mc''''',(mc_path+'.db',))
+    c.execute('''ATTACH DATABASE ? AS mc''',(mc_path+'.db',))
 
-    lc_sql = '''SELECT isect.area,mc.mod_id,mc.era_id,isect.px,isect.py
+    lc_sql = '''CREATE TABLE lcmc AS
+                SELECT isect.area,mc.mod_id,mc.era_id,isect.px,isect.py
                 FROM mc.k3tif_mc mc
                 JOIN
                 isect
                 ON isect.fid=mc.id
                 ORDER BY mc.mod_id'''
 
+    c.execute(lc_sql)
+
+    # Index
+    ### CREATE INDEX
+    idx_sql = '''CREATE INDEX IF NOT EXISTS %s ON %s (%s)'''
+    idx_name = 'mod_id_idx'
+    ds_name = 'lcmc'
+    idx_col = 'mod_id'
+    sql = idx_sql % (idx_name, ds_name, idx_col)
+    c.execute(sql)
     print 'writing LC and mod'
     Lcmod_manager( project, mc_sz, mod_ind_list )
 
@@ -405,8 +411,7 @@ def Land2csv(project, mod_ind_list, region=None):
     if project['lc_type']=='shp':
         Vlc2csv(project, mod_ind_list, region)
     elif project['lc_type']=='tif_dir':
-        num_rows = Rlc2csv(project, mod_ind_list, region)
-        return num_rows
+        Rlc2csv(project, mod_ind_list, region)
 
 
 def Rlc2csv(project, mod_ind_list, region=None):
