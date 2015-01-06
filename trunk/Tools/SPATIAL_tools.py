@@ -21,7 +21,7 @@
 #  See the GNU General Public License for more details.
 #
 ##################################################################
-'''Module containing shapefile and
+'''Module containing functions for basic shapefile and raster manipulation.
 
 '''
 import os
@@ -281,15 +281,7 @@ def Isect_poly_idx( src1_dsn, src1_pre, src1_id, src1_fields, area,
                 dst_lyr.CreateFeature(dst_feat)
                 dst_feat = isect = None
                 idVar+=1
-        # Print progress:
         progress_bar.check(fid1)
-        #if int( math.fmod( fid1, count_update ) ) == 0:
-        #    prog = int( fid1 / count_max * 100 )
-        #   report = '%s%% . ' % prog
-        #   sys.stdout.write( report )
-        #    sys.stdout.flush()
-
-    #sys.stdout.write("\n")
     progress_bar.flush()
     dst_r.close()
     dst_r = dst_ds = dst_lyr = dst_feat = isect = defn = None
@@ -374,11 +366,6 @@ def Isect_ras_poly(ras_fn,poly_dsn,dst_fn):
         dst = 'db'
         conn = sqlite3.connect(dst_fn)
         c = conn.cursor()
-        #c.execute('''CREATE TABLE inside
-        #          (fid integer, px integer, py integer)''')
-        #          # id integer primary key autoincrement not null,
-        #c.execute('''CREATE TABLE border
-        #          (fid integer, px integer, py integer, area real)''')
         c.execute('''CREATE TABLE isect
                     (fid integer, px integer, py integer, area real)''')
         conn.commit()
@@ -596,7 +583,6 @@ def Mk_polygrid(params):
     defn = layer.GetLayerDefn()
 
     idVar   = 0
-    progVar = 0
     count        = 0
     count_max    = (ymax-ymin) / dy
     # count_update = count_max * 0.05 # print progress every 5%!
