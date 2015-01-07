@@ -242,12 +242,7 @@ def Continue_era_hdf( project, hdfp ):
             p.join() # main script waits for this child to grow up
 
             progress_bar.check(i)
-            #prog = int( float(i) / len(start_end) * 100 )
-            #report = '%s%% . ' % prog
-            #sys.stdout.write( report )
-            #sys.stdout.flush()
-    progress_bar.flush()
-    #sys.stdout.write("\n")
+        progress_bar.flush()
     print hdfp['sds'],'FINISHED!'
 
 
