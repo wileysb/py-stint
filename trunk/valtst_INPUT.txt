@@ -16,12 +16,12 @@ mod_per_region  = 5000
 lcm_thresh      = 50000
 
 # PATHS  ###############################################################
-aoi           = /path/to/valtst_clc06.shp # shp or raster directory
-modis_tile_fn = /path/to/MODIS_tiles.shp
+aoi           = /home/sl_wib/data/LANDCOVER/corine/valtst_clc06.shp # shp or raster directory
+modis_tile_fn = /home/sl_wib/py-stint/Tools/Data/MODIS_tiles.shp
 prj_name      = valtst # no spaces
-prj_directory = /path/to/project_output_directory/ # this directory should exist before beginning processing
-modis_dir     = /path/to/MODIS_ARCHIVE/
-era_dir       = /path/to/CLIMATE/ERA/
+prj_directory = /home/sl_wib/stint/valtst/ # this directory should exist before beginning processing
+modis_dir     = /home/sl_wib/data/MODIS_ARCHIVE/
+era_dir       = /home/sl_wib/data/CLIMATE/ERA/
 
 
 # ERA datasets #########################################################
