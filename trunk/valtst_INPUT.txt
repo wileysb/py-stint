@@ -10,15 +10,15 @@
 
 
 # PROJECT INFO #########################################################
-start_year      = YY   # starts 1 January, 20YY (late Feb if '00)
-end_year        = YY   # runs through 31 December, 20YY
-# mod_per_region  = 500
-# lcm_thresh      = 10000
+start_year      = 04   # starts 1 January, 20YY (late Feb if '00)
+end_year        = 05   # runs through 31 December, 20YY
+mod_per_region  = 5000
+lcm_thresh      = 50000
 
 # PATHS  ###############################################################
-aoi           = /path/to/aoi.shp # shp or raster directory
+aoi           = /path/to/valtst_clc06.shp # shp or raster directory
 modis_tile_fn = /path/to/MODIS_tiles.shp
-prj_name      = project_name # no spaces
+prj_name      = valtst # no spaces
 prj_directory = /path/to/project_output_directory/ # this directory should exist before beginning processing
 modis_dir     = /path/to/MODIS_ARCHIVE/
 era_dir       = /path/to/CLIMATE/ERA/
@@ -26,17 +26,16 @@ era_dir       = /path/to/CLIMATE/ERA/
 
 # ERA datasets #########################################################
 # short_name  = file1,[file2,file3] ( in order of dates contained )    #
-example       = example_jan2000_Dec2013.nc,
-sd            = snowdepth_Jan2000_Dec2006.nc, snowdepth_Jan2007_Dec2013.nc
+# sd            = snowdepth_Jan2000_Dec2006.nc, snowdepth_Jan2007_Dec2013.nc
 t2m           = T2m_Feb2000_Dec2004.nc, T2m_Jan2005_Dec2008.nc, T2m_Jan2009_Dec2013.nc
 
 
 # MODIS datasets #######################################################
 # dset   =  dnum:short_name,  [dnum:short_name,  dnum:short_name]      #
-example  =     2:example_subdataset,
-MCD43A2  =     0:BSA_quality,   2:BSA_ancill,    3:BSA_band
-MCD43A3  =     7:BSA_vis,       8:BSA_nir,       9:BSA_sw
-MOD10A2  =     0:mse,           1:dsc
+# example  =     2:example_subdataset,
+MCD43A2  =     0:BSA_quality,   #2:BSA_ancill,    3:BSA_band
+MCD43A3  =     7:BSA_vis,       #8:BSA_nir,       9:BSA_sw
+MOD10A2  =     0:mse,           #1:dsc
 
 
 # Landcover datasets ###################################################
