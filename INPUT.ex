@@ -1,6 +1,6 @@
 # '#' denotes comments: remainder of the line is not parsed
 # ',' is used to identify ERA and MODIS dataset lines
-# ',' should tehrefore be used in every ERA and MODIS dataset line
+# ',' should teherefore be used in every ERA and MODIS dataset line
 # ',' should NOT be used in any other line
 
 # spaces between words and symbols are meaningless, and will be stripped
