@@ -419,7 +419,10 @@ def Isect_ras_poly(ras_fn,poly_dsn,dst_fn):
                     out[fid][0] = np.array(out[fid][0],dtype)
                     keep = True
                 elif dst=='db':
-                    c.executemany('INSERT INTO isect VALUES (?,?,?,?)',out[fid][0])
+                    # c.executemany('INSERT INTO isect VALUES (?,?,?,?)',out[fid][0])
+                    for item in out[fid][0]:
+                        sql_insert = 'INSERT INTO isect VALUES ({},{},{},{})'.format(*item)
+                        c.execute(sql_insert)
             if len(out[fid][1]) > 0:
                 if dst=='p':
                     dtype=[('x',np.int64),('y',np.int64),('area',np.float64)]
