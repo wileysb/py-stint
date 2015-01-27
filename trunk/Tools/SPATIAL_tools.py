@@ -426,7 +426,30 @@ def Isect_ras_poly(ras_fn,poly_dsn,dst_fn):
                     out[fid][1] = np.array(out[fid][1],dtype)
                     keep = True
                 elif dst=='db':
-                    c.executemany('INSERT INTO isect VALUES (?,?,?,?)',out[fid][1])
+                    # c.executemany('INSERT INTO isect VALUES (?,?,?,?)',out[fid][1])
+                    binding_error = '''
+                    In [39]: c.execute('INSERT INTO isect VALUES (?,?,?,?)',out[fid][1][0])
+                    ---------------------------------------------------------------------------
+                    InterfaceError                            Traceback (most recent call last)
+                    <ipython-input-39-aa5b6f7d2bc9> in <module>()
+                    ----> 1 c.execute('INSERT INTO isect VALUES (?,?,?,?)',out[fid][1][0])
+
+                    InterfaceError: Error binding parameter 1 - probably unsupported type.
+
+                    In [40]: type(out[fid][1][0])
+                    Out[40]: tuple
+
+                    In [41]: c.execute('INSERT INTO isect VALUES (?,?,?,?)',(423, 9324, 0, 9.130357817019103))
+                    Out[41]: <sqlite3.Cursor at 0x24e2ea0>
+
+                    In [42]: (423, 9324, 0, 9.130357817019103) == out[fid][1][0]
+                    Out[42]: True
+                    '''
+                    # This is 'the wrong way', but since the right way gives the binding error, and this
+                    # will never interface with The Internet, I'm ok with that.
+                    for item in out[fid][1]:
+                        sql_insert = 'INSERT INTO isect VALUES ({},{},{},{})'.format(*item)
+                        c.execute(sql_insert)
             if not keep:
                 jnk = out.pop(fid)
         conn.commit()

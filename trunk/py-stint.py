@@ -462,7 +462,7 @@ def bad_arg_exit():
 
 if __name__ == '__main__':
     '''
-    CLI arguments: 
+    CLI arguments:
     --help: print help __doc__
     1 : run stage 1
     2 : run stage 2
