@@ -303,11 +303,11 @@ def Join_isect_tables(project, c):
 
     lc_sql = '''CREATE TABLE IF NOT EXISTS lcmc AS
                 SELECT isect.area,mc.mod_id,mc.era_id,isect.px,isect.py
-                FROM mc.k3tif_mc mc
+                FROM mc.{} mc
                 JOIN
                 isect
                 ON isect.fid=mc.id
-                ORDER BY mc.mod_id'''
+                ORDER BY mc.mod_id'''.format(mc_dsn)
 
     c.execute(lc_sql)
 
