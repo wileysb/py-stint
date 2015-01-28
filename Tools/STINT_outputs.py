@@ -220,6 +220,10 @@ def Get_unique_ids_sql(mc_dsn, fid_list):
 
     db_name = os.path.basename(mc_dsn)
 
+    # len(fid_list) == 62092
+    # Max sql variables == 999
+    # Need to break mod_id_sql and era_id_sql into chunks of maximum 999 fids-per-query, while staying distinct
+    
     mod_id_sql = 'SELECT DISTINCT mod_id FROM ' + db_name + ' WHERE id IN (' + ','.join('?'*len(fid_list)) + ')'
 
     c.execute(mod_id_sql,fid_list)
