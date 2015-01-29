@@ -225,11 +225,11 @@ def Get_unique_ids_sql(mc_dsn, fid_list):
     for fid_list_part in Chunks(fid_list,999):
 
         mod_id_sql = 'SELECT DISTINCT mod_id FROM ' + db_name + ' WHERE id IN (' + ','.join('?'*len(fid_list_part)) + ')'
-        c.execute(mod_id_sql,fid_list)
+        c.execute(mod_id_sql,fid_list_part)
         mod_id_list = list(set(mod_id_list + [f[0] for f in c.fetchall()])) # use set to eliminate duplicates from list
 
         era_id_sql = 'SELECT DISTINCT era_id FROM ' + db_name + ' WHERE id IN (' + ','.join('?'*len(fid_list_part)) + ')'
-        c.execute(era_id_sql,fid_list)
+        c.execute(era_id_sql,fid_list_part)
         era_id_list =  list(set(era_id_list + [f[0] for f in c.fetchall()])) # use set to eliminate duplicates from list
 
 
