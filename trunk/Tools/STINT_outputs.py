@@ -33,6 +33,7 @@ import h5py
 import sqlite3
 import numpy as np
 from ORG_tools import Countdown
+from ORG_tools import Chunks
 from SPATIAL_tools import Ogr_open
 
 
@@ -220,29 +221,30 @@ def Get_unique_ids_sql(mc_dsn, fid_list):
 
     db_name = os.path.basename(mc_dsn)
 
-    # len(fid_list) == 62092
-    # Max sql variables == 999
-    # Need to break mod_id_sql and era_id_sql into chunks of maximum 999 fids-per-query, while staying distinct
-    
-    mod_id_sql = 'SELECT DISTINCT mod_id FROM ' + db_name + ' WHERE id IN (' + ','.join('?'*len(fid_list)) + ')'
+    mod_id_list = era_id_list = []
+    for fid_list_part in Chunks(fid_list,999):
 
-    c.execute(mod_id_sql,fid_list)
-    mod_id_list = [f[0] for f in c.fetchall()]
+        mod_id_sql = 'SELECT DISTINCT mod_id FROM ' + db_name + ' WHERE id IN (' + ','.join('?'*len(fid_list_part)) + ')'
+        c.execute(mod_id_sql,fid_list)
+        mod_id_list = list(set(mod_id_list + [f[0] for f in c.fetchall()])) # use set to eliminate duplicates from list
 
-    era_id_sql = 'SELECT DISTINCT era_id FROM ' + db_name + ' WHERE id IN (' + ','.join('?'*len(fid_list)) + ')'
+        era_id_sql = 'SELECT DISTINCT era_id FROM ' + db_name + ' WHERE id IN (' + ','.join('?'*len(fid_list_part)) + ')'
+        c.execute(era_id_sql,fid_list)
+        era_id_list =  list(set(era_id_list + [f[0] for f in c.fetchall()])) # use set to eliminate duplicates from list
 
-    c.execute(era_id_sql,fid_list)
-    era_id_list =  [f[0] for f in c.fetchall()]
 
-    mod_ind_sql = 'SELECT DISTINCT mod_id,mod_x_ind,mod_y_ind,mod_area FROM ' + db_name +' WHERE mod_id IN (' + ','.join('?'*len(mod_id_list)) + ')'
+    mod_ind_list = []
+    for mod_id_list_part in Chunks(mod_id_list,999):
+        mod_ind_sql = 'SELECT DISTINCT mod_id,mod_x_ind,mod_y_ind,mod_area FROM ' + db_name +' WHERE mod_id IN (' + ','.join('?'*len(mod_id_list_part)) + ')'
+        c.execute(mod_ind_sql,mod_id_list_part)
+        mod_ind_list = list(set(mod_ind_list + c.fetchall())) # use set to eliminate duplicates from list
 
-    c.execute(mod_ind_sql,mod_id_list)
-    mod_ind_list = c.fetchall()
 
-    era_ind_sql = 'SELECT DISTINCT era_id,era_x_ind,era_y_ind FROM ' + db_name + ' WHERE era_id IN (' + ','.join('?'*len(era_id_list)) + ')'
-
-    c.execute(era_ind_sql,era_id_list)
-    era_ind_list = c.fetchall()
+    era_ind_list = []
+    for era_id_list_part in Chunks(era_id_list,999):
+        era_ind_sql = 'SELECT DISTINCT era_id,era_x_ind,era_y_ind FROM ' + db_name + ' WHERE era_id IN (' + ','.join('?'*len(era_id_list_part)) + ')'
+        c.execute(era_ind_sql,era_id_list_part)
+        era_ind_list = list(set(era_ind_list + c.fetchall())) # use set to eliminate duplicates from list
 
     # sort both lists by mod_id and era_id:
     era_ind_list = sorted(era_ind_list, key=lambda feat: feat[0])

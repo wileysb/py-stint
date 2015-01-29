@@ -269,6 +269,13 @@ def Daynum2date(daynum, basedatestr):
     return out_string
 
 
+def Chunks(l, n):
+    """ Yield successive n-sized chunks from l.
+    """
+    for i in xrange(0, len(l), n):
+        yield l[i:i+n]
+
+
 class Countdown:
     def __init__(self,count_max,update_interval=None,barlen=50):
         self.update_interval=update_interval
