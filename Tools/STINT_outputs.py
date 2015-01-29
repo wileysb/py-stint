@@ -452,6 +452,28 @@ def Rlc2csv(project, mod_ind_list, region=None):
 
     lc_csv.writerow(hdr)
 
+    TODO = '''
+    Updated to revision 90.
+    [sl_wib@vroom2 py-stint]$ python py-stint.py ../stint/k3tif/k3tif_INPUT.txt 7
+    Join databases (can be long!)--Gather feature IDs--Write out climate CSVs
+    Writing LC and mod
+    Splitting 32725385 lcm features into 12 regions, 5000 MODIS cells each
+    Traceback (most recent call last):
+      File "py-stint.py", line 487, in <module>
+        Run_stage(stage_num)
+      File "py-stint.py", line 269, in Run_stage
+        Raslc2csv(project)
+      File "/space/home/sl_wib/py-stint/Tools/STINT_outputs.py", line 400, in Raslc2csv
+        Lcmod_manager( project, mc_sz, mod_ind_list )
+      File "/space/home/sl_wib/py-stint/Tools/STINT_outputs.py", line 195, in Lcmod_manager
+        Land2csv(project, region_mod_ind, region=region)
+      File "/space/home/sl_wib/py-stint/Tools/STINT_outputs.py", line 407, in Land2csv
+        Rlc2csv(project, mod_ind_list, region)
+      File "/space/home/sl_wib/py-stint/Tools/STINT_outputs.py", line 458, in Rlc2csv
+        c.execute(lc_sql,mod_id_list)
+    sqlite3.OperationalError: too many SQL variables
+    ''' #TODO
+
     # Get the lc_lines for the current mod_ids
     lc_fmt = 'SELECT area,mod_id,era_id,px,py FROM lcmc WHERE mod_id IN (%s)'
     lc_sql = lc_fmt % ','.join('?'*(len(mod_id_list)))
