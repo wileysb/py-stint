@@ -575,7 +575,7 @@ def Mk_bbox(xmin,ymin,xmax,ymax):
 
 def Mk_polygrid(params):
     '''Mk_polygrid(**params) 
-    after params = Get_grid_params(rasterfile)
+    after params = Parse_extents(rasterfile)
     
     QGIS fTools approach (VectorGrid tool); 
     modified to replace QGIS stuff with OGR
