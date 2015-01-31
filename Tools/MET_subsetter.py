@@ -1,5 +1,6 @@
 ## This is a simpler subsetter script, specifically for metno tam and rr grids, initially in daily netcdf files
-## two steps: aggregate/time-average
+## two steps: aggregate/time-average (nc2hdf)
+## spatial subset
 
 import os
 import sys
@@ -26,50 +27,156 @@ llY = 6450000 # in the UTM33 system if you prefer this coordinate system.
 nx = 1195
 ny = 1550
 
+x_var = None # todo
+y_var = None # todo
+
 # hdf creation and
 #from Scientific.IO.NetCDF import NetCDFFile
 
 def Aggregate_metno_grids(project):
+    '''metnc2hdf'''
+    # tam
+
+    hdfp['sds'] = 'tam'
+
+    modis_days = project['modis_days']
+
+    hdfp = {} # hdf parameters
+    hdfp['appendnum']   = 5
+    hdfp['metno_dir']   = project['metno_dir']
+    hdfp['modis_days']  = project['modis_days']
+    hdfp['NODATA']      = np.nan
+    hdfp['years'] = [int(str(modis_days[i])[:4]) for i in \
+                       range(len(modis_days))]
+    hdfp['ydays'] = [int(str(modis_days[i])[4:]) for i in \
+                       range(len(modis_days))]
+
+    hdfp['basedate'] = dt.datetime.strptime(str(modis_days[0]),\
+                                                '%Y%j').date()
+
+    hdfp['time_var'] = np.array([(dt.datetime.strptime(str(mday), \
+      '%Y%j').date()-hdfp['basedate']).total_seconds()/86400. for \
+      mday in modis_days],dtype='int16')
+
+    hdfp['h5f'] = os.path.join(project['hdf_dir'],project['prj_name']+ \
+                               '_'+hdfp['sds']+'.hdf5')
+
+    metno_md = Get_metno_md('/space/wib_data/CLIMATE/METNO/tam/tam24hNOgrd1957on_2006_07_02.nc')
+    hdfp['fill_value'] = -999
 
 
 
-def Start_metno_hdf( project, hdfp):
+def Mk_hdf( hdfp, x_var, y_var, metno_md ):
+    '''Creates the hdf5 file, and defines the dimensions and datasets.
+
+    :param project: (dict) py-stint project parameters
+    :param hdfp: (dict) conversion parameters
+    :param x_var: (np.array) [x] cell center coordinates bounding the AOI
+    :param y_var: (np.array) [y] cell center coordinates bounding the AOI
+    :param modis_md: (dict) keys to unpack the MODIS dataset stored values.
+    :return:
+    '''
     print 'Creating',hdfp['sds'],hdfp['h5f']
-    src_nc = Build_src_nc( project, hdfp)
-    missing_val  = src_nc[0].variables[hdfp['sds']].missing_value
-    ncdtype = src_nc[0].variables[hdfp['sds']].data.dtype
-    nclon   = src_nc[0].variables['longitude'][:]
-    nclat   = src_nc[0].variables['latitude'][:]
 
-    dx = 1000
-    dy = 1000
+    with h5py.File(hdfp['h5f'],"w") as hdf:
+        dshape=(len(hdfp['time_var']),len(y_var),len(x_var))
+        #arr_out = hdf.create_dataset(hdfp['sds'],dshape,dtype='int16', \
+        arr_out = hdf.create_dataset(hdfp['sds'],dshape,dtype=modis_md['dtype'], \
+          chunks=True,compression='lzf') #compression='gzip' or 'szip'
+        arr_out[:] = modis_md['fill_value']
+        x_out = hdf.create_dataset("x",data=x_var)
+        y_out = hdf.create_dataset("y",data=y_var)
+        t_out = hdf.create_dataset("time", (len(hdfp['time_var']),), \
+                                   dtype='int16')
+        yr_out= hdf.create_dataset("year",data=hdfp['years'])
+        day_out=hdf.create_dataset("yday",data=hdfp['ydays'])
+        # Add metadata
+        # access later: hdf[sds].attrs['scale_factor']
+        t_out.attrs.create('time_format','Days since %s' \
+                                        % hdfp['basedate'])
+        t_out.attrs.create('basedate',str(hdfp['basedate']))
+        arr_out.attrs.create('projection',sin_prj)
+        arr_out.attrs.create('scale_factor',modis_md['scale_factor'])
+        arr_out.attrs.create('add_offset',modis_md['add_offset'])
+        arr_out.attrs.create('fill_value',modis_md['fill_value'])
+        arr_out.attrs.create('dx',modis_md['dx'])
+        arr_out.attrs.create('dy',modis_md['dy'])
+
+
+def Get_metno_md(metno_fn):
+    '''Return a dict giving the keys to unpack the optimized
+    MODIS dataset values.
+
+    metadata should be applied as follows:
+    (1) REPLACE fill_value with NAN
+    (2) v = c*z + b, where:
+      v = measured value
+      c = stored cell value
+      z = scale_factor
+      b = add_offset
+
+    returns a dict with the following metadata parameters (all integer):
+
+    'scale_factor' : z
+    'add_offset'   : b
+    'fill_value'   : dataset NAN value
+
+    :param modis_dir: (string) path to MODIS_archive
+    :param dset: (string) MODIS product, ie 'MCD43A3'
+    :param dnum: (integer) subdataset number, ie 7 -> BSA_vis
+    :param mtile: (string) MODIS tile number, ie 'h19v03'
+    :return: (dict) MODIS metadata
+    '''
+    out      = {}
+
+    metno = NetCDFFile(metno_fn,'r')
+
+    out['dtype'] = np.dtype('int16') # or np.dtype('>i2') ?
+    out['scale_factor'] = 0.1
+    out['add_offset']   = 0
+    out['fill_value']   = int(-999)
+    out['dx'] = 1000
+    out['dy'] = 1000
+    return out
+
+
+def ERA_to_mdays(project,dset,start_time,src_nc):
+    '''era_series = Avg_to_mdays(x,y,dset=['sd' OR 't2m']'''
+
+    nclon = src_nc[0].variables['longitude'][:]
+    nclat = src_nc[0].variables['latitude'][:]
+    dlon  = nclon[1]-nclon[0]
+    dlat  = nclat[1]-nclat[0]
 
     nclon = nclon - 0.5*dlon
     nclat = nclat + 0.5*dlat
 
-    hdlon = nclon[x_s:x_e]
-    hdlat = nclat[y_s:y_e]
+    x_s,x_e,y_s,y_e = Get_spatial_indexes(nclon,nclat,project['aoi'])
+    # start_time assigned
+    end_time   = start_time+16*24
+    intervals = ID_intervals(start_time,end_time,src_nc)
+    era_vals = False
+    for k in range(len(intervals)):
+        if intervals[k]:
+            st = int(intervals[k][0])
+            fi = int(intervals[k][1])
+            tot= len(src_nc[k].variables['time'][:])
+            if fi==(tot-1):
+                fi = None
 
-    with h5py.File(hdfp['h5f'],"w") as hdf:
-        dshape=(len(hdfp['hdtime']),len(hdlat),len(hdlon))
-        #arr_out = hdf.create_dataset(hdfp['sds'],dshape,dtype='int16',chunks=True,compression='lzf')
-        arr_out = hdf.create_dataset(hdfp['sds'],dshape,dtype=ncdtype,chunks=True,compression='lzf')
-        arr_out[:] = missing_val
-        arr_out.attrs['scale_factor'] = src_nc[0].variables[hdfp['sds']].scale_factor
-        arr_out.attrs['add_offset']   = src_nc[0].variables[hdfp['sds']].add_offset
-        arr_out.attrs['units']        = src_nc[0].variables[hdfp['sds']].units
-        arr_out.attrs['projection']   = utm33n_string
-        arr_out.attrs['fill_value']   = missing_val
-        arr_out.attrs['dx']           = dlon
-        arr_out.attrs['dy']           = dlat
-        x_out = hdf.create_dataset("x",data=hdlon)
-        y_out = hdf.create_dataset("y",data=hdlat)
-        t_out = hdf.create_dataset("time", (len(hdfp['hdtime']),),
-                                    dtype='int32')
-        t_out.attrs['units'] = 'hours since 1900-01-01 00:00:0.0'
-        yr_out= hdf.create_dataset("year",data=hdfp['years'])
-        day_out=hdf.create_dataset("yday",data=hdfp['ydays'])
-    del src_nc
+            data = src_nc[k].variables[dset][st:fi,y_s:y_e,x_s:x_e]
+            if era_vals:
+                era_series = np.concatenate([era_series,data],axis=0)
+            else:
+                era_series = data
+                era_vals = True
+    if (era_series.shape[0]==16) or (era_series.shape[0]==64):
+        mean16day = np.mean(era_series,axis=0)
+    else:
+        print 'PROBLEMS WITH ERA SAMPLE!'
+        mean16day = 'PROBLEMS!!'
+    return mean16day
+
 
 
 def Gen_appendexes( project, hdfp ):
