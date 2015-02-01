@@ -77,7 +77,7 @@ def Aggregate_metno_grids(project):
 
     Continue_metno_hdf( project, hdfp )
 
-    ##### TAM ##############################
+    ##### PRECIP ###########################
     hdfp['sds'] = 'rr'
     rr_fmt =  'rr/rr24hNOgrd1957on_{0}_{1}_{2}.nc' # .format(YYYY, MM, DD)
     hdfp['sds_fn_fmt']['rr'] = os.path.join(hdfp['metno_dir'], rr_fmt)
