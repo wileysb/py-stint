@@ -60,8 +60,6 @@ def Aggregate_metno_grids(project):
       '%Y%j').date()-hdfp['basedate']).total_seconds()/86400. for \
       mday in modis_days],dtype='int16')
 
-    hdfp['h5f'] = os.path.join(project['metno_dir'],project['prj_name']+ \
-                               '_'+hdfp['sds']+'.hdf5')
 
     metno_md = Get_metno_md()
     hdfp['fill_value'] = -999
@@ -69,10 +67,13 @@ def Aggregate_metno_grids(project):
 
     ##### TAM ##############################
     hdfp['sds'] = 'tam'
+    hdfp['h5f'] = os.path.join(project['metno_dir'],project['prj_name']+ \
+                               '_'+hdfp['sds']+'.hdf5')
+
     tam_fmt =  'tam/tam24hNOgrd1957on_{0}_{1}_{2}.nc' # .format(YYYY, MM, DD)
     hdfp['sds_fn_fmt']['tam'] = os.path.join(hdfp['metno_dir'], tam_fmt)
     if not os.path.isfile(hdfp['h5f']):
-        Mk_hdf(project, hdfp)
+        Mk_hdf(hdfp, metno_md)
 
     Continue_metno_hdf( project, hdfp )
 
@@ -81,7 +82,7 @@ def Aggregate_metno_grids(project):
     rr_fmt =  'rr/rr24hNOgrd1957on_{0}_{1}_{2}.nc' # .format(YYYY, MM, DD)
     hdfp['sds_fn_fmt']['rr'] = os.path.join(hdfp['metno_dir'], rr_fmt)
     if not os.path.isfile(hdfp['h5f']):
-        Mk_hdf(project, hdfp)
+        Mk_hdf(hdfp, metno_md)
 
     Continue_metno_hdf( project, hdfp )
 
