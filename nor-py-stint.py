@@ -464,13 +464,6 @@ def bad_arg_exit():
     sys.exit( 1 )
 
 
-nor_py_cmds = '''
-input = '/space/wib_data/ssarV2/ssarV2_INPUT.txt'
-project = Parse_input(input)
-project['modis_days']  = Get_modis_days( project['start_year'],
-                                         project['end_year'])
-
-'''
 
 if __name__ == '__main__':
     '''
@@ -481,6 +474,15 @@ if __name__ == '__main__':
     3 ...
     '''
 
+    nor_py_cmds = '''running below!'''
+    input = '/space/wib_data/ssarV2/ssarV2_INPUT.txt'
+    project = Parse_input(input)
+    project['modis_days']  = Get_modis_days( project['start_year'],
+                                             project['end_year'])
+    
+
+
+    normal_script = '''
     if len(sys.argv)==2:
         if sys.argv[1] in ['-h','--help']:
             print __doc__
@@ -503,3 +505,4 @@ if __name__ == '__main__':
             bad_arg_exit()
     else:
         bad_arg_exit()
+    '''
