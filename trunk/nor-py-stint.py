@@ -464,7 +464,7 @@ def bad_arg_exit():
     sys.exit( 1 )
 
 
-nor-py-cmds = '''
+nor_py_cmds = '''
 input = '/space/wib_data/ssarV2/ssarV2_INPUT.txt'
 project = Parse_input(input)
 project['modis_days']  = Get_modis_days( project['start_year'],
