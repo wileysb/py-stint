@@ -71,12 +71,24 @@ def Aggregate_metno_grids(project):
     hdfp['sds'] = 'tam'
     tam_fmt =  'tam/tam24hNOgrd1957on_{0}_{1}_{2}.nc' # .format(YYYY, MM, DD)
     hdfp['sds_fn_fmt']['tam'] = os.path.join(hdfp['metno_dir'], tam_fmt)
+    if not os.path.isfile(hdfp['h5f']):
+        Mk_hdf(project, hdfp)
+
+    Continue_metno_hdf( project, hdfp )
+
+    ##### TAM ##############################
+    hdfp['sds'] = 'rr'
+    rr_fmt =  'rr/rr24hNOgrd1957on_{0}_{1}_{2}.nc' # .format(YYYY, MM, DD)
+    hdfp['sds_fn_fmt']['rr'] = os.path.join(hdfp['metno_dir'], rr_fmt)
+    if not os.path.isfile(hdfp['h5f']):
+        Mk_hdf(project, hdfp)
+
+    Continue_metno_hdf( project, hdfp )
+
+    print 'BING!!'
 
 
-
-
-
-def Mk_hdf( hdfp, x_var, y_var, metno_md ):
+def Mk_hdf( hdfp, metno_md ):
     '''Creates the hdf5 file, and defines the dimensions and datasets.
 
     :param project: (dict) py-stint project parameters
@@ -172,17 +184,18 @@ def Gen_appendexes( project, hdfp ):
 
 
 def Load_metno_arr(hdfp, date):
-    metno_fn = "hdfp['metno_dir'] + hdfp['sds'] + date"
+    metno_fn_fmt = hdfp['metno_fn_fmt'][hdfp['sds']]
+    metno_fn = metno_fn_fmt.format(date.year, '{:02d}'.format(date.month), '{:02d}'.format(date.day))
     nc = NetCDFFile(metno_fn,'r')
     arr = nc.variables[hdfp['sds']][:]
-    return arr # flipud??
+    return arr.flipud() # flipud??
 
 
 def METNO_to_mdays(hdfp, itime):
     # TODO: replace string placeholders with actual code
 
-    modis_start = hdfp['modis_days'][itime] # todo (or end??)
-    modis_start = dt.datetime('modis_start')
+    modis_start = hdfp['modis_days'][itime]
+    modis_start = dt.datetime.strptime(str(modis_start), '%Y%j')
     numdays = 16
     modis_range = (modis_start + dt.timedelta(days=x) for x in range(0, numdays))
     src_range = np.ones((len(modis_range), ny, nx)) * -999
@@ -211,8 +224,7 @@ def Append_to_hdf(  hdfp, st_i,end_i):
                 hdf['time'][itime] = hdfp['hdtime'][itime]
 
 
-
-def Continue_era_hdf( project, hdfp ):
+def Continue_metno_hdf( project, hdfp ):
     print 'Continuing', hdfp['sds'], hdfp['h5f']
     start_end = Gen_appendexes( project, hdfp )
     if start_end:
