@@ -39,14 +39,13 @@ y_var = uly - dy*np.arange(ny)
 
 def Aggregate_metno_grids(project):
     '''metnc2hdf'''
-    # tam
+    ## COMMON VARIABLES ######
 
     modis_days = project['modis_days']
-
     hdfp = {} # hdf parameters
-    hdfp['sds'] = 'tam'
     hdfp['appendnum']   = 5
-    hdfp['metno_dir']   = project['metno_dir']
+    hdfp['metno_dir']   = '/space/wib_data/CLIMATE/METNO' # project['metno_dir']
+    hdfp['sds_fn_fmt']  = {}
     hdfp['modis_days']  = project['modis_days']
     hdfp['NODATA']      = np.nan
     hdfp['years'] = [int(str(modis_days[i])[:4]) for i in \
@@ -61,11 +60,19 @@ def Aggregate_metno_grids(project):
       '%Y%j').date()-hdfp['basedate']).total_seconds()/86400. for \
       mday in modis_days],dtype='int16')
 
-    hdfp['h5f'] = os.path.join(project['hdf_dir'],project['prj_name']+ \
+    hdfp['h5f'] = os.path.join(project['metno_dir'],project['prj_name']+ \
                                '_'+hdfp['sds']+'.hdf5')
 
-    metno_md = Get_metno_md('/space/wib_data/CLIMATE/METNO/tam/tam24hNOgrd1957on_2006_07_02.nc')
+    metno_md = Get_metno_md()
     hdfp['fill_value'] = -999
+
+
+    ##### TAM ##############################
+    hdfp['sds'] = 'tam'
+    tam_fmt =  'tam/tam24hNOgrd1957on_{0}_{1}_{2}.nc' # .format(YYYY, MM, DD)
+    hdfp['sds_fn_fmt']['tam'] = os.path.join(hdfp['metno_dir'], tam_fmt)
+
+
 
 
 
@@ -165,7 +172,7 @@ def Gen_appendexes( project, hdfp ):
 
 
 def Load_metno_arr(hdfp, date):
-    metno_fn = "hdfp['src_dir'] + hdfp['sds'] + date"
+    metno_fn = "hdfp['metno_dir'] + hdfp['sds'] + date"
     nc = NetCDFFile(metno_fn,'r')
     arr = nc.variables[hdfp['sds']][:]
     return arr # flipud??
@@ -176,8 +183,8 @@ def METNO_to_mdays(hdfp, itime):
 
     modis_start = hdfp['modis_days'][itime] # todo (or end??)
     modis_start = dt.datetime('modis_start')
-    modis_end = modis_start + dt.timedelta(days=16)
-    modis_range = 'code from metno download script'
+    numdays = 16
+    modis_range = (modis_start + dt.timedelta(days=x) for x in range(0, numdays))
     src_range = np.ones((len(modis_range), ny, nx)) * -999
     for i in range(len(modis_range)):
         date = modis_range[i]
