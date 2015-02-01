@@ -22,13 +22,17 @@ utm33n_string = utm33n.ExportToWkt()
 
 dx = dy = 1000 # (m)
 # The southwestern corner of the grid has the coordinates
-llX = -75000  # and
-llY = 6450000 # in the UTM33 system if you prefer this coordinate system.
+llx = -75000  # and
+lly = 6450000 # in the UTM33 system if you prefer this coordinate system.
+
 nx = 1195
 ny = 1550
 
-x_var = None # todo
-y_var = None # todo
+ulx = llx
+uly = lly + (ny * dy) + dy
+
+x_var = ulx + dx*np.arange(nx)
+y_var = uly - dy*np.arange(ny)
 
 # hdf creation and
 #from Scientific.IO.NetCDF import NetCDFFile
@@ -37,11 +41,10 @@ def Aggregate_metno_grids(project):
     '''metnc2hdf'''
     # tam
 
-    hdfp['sds'] = 'tam'
-
     modis_days = project['modis_days']
 
     hdfp = {} # hdf parameters
+    hdfp['sds'] = 'tam'
     hdfp['appendnum']   = 5
     hdfp['metno_dir']   = project['metno_dir']
     hdfp['modis_days']  = project['modis_days']
@@ -81,9 +84,9 @@ def Mk_hdf( hdfp, x_var, y_var, metno_md ):
     with h5py.File(hdfp['h5f'],"w") as hdf:
         dshape=(len(hdfp['time_var']),len(y_var),len(x_var))
         #arr_out = hdf.create_dataset(hdfp['sds'],dshape,dtype='int16', \
-        arr_out = hdf.create_dataset(hdfp['sds'],dshape,dtype=modis_md['dtype'], \
+        arr_out = hdf.create_dataset(hdfp['sds'],dshape,dtype=metno_md['dtype'], \
           chunks=True,compression='lzf') #compression='gzip' or 'szip'
-        arr_out[:] = modis_md['fill_value']
+        arr_out[:] = metno_md['fill_value']
         x_out = hdf.create_dataset("x",data=x_var)
         y_out = hdf.create_dataset("y",data=y_var)
         t_out = hdf.create_dataset("time", (len(hdfp['time_var']),), \
@@ -95,15 +98,15 @@ def Mk_hdf( hdfp, x_var, y_var, metno_md ):
         t_out.attrs.create('time_format','Days since %s' \
                                         % hdfp['basedate'])
         t_out.attrs.create('basedate',str(hdfp['basedate']))
-        arr_out.attrs.create('projection',sin_prj)
-        arr_out.attrs.create('scale_factor',modis_md['scale_factor'])
-        arr_out.attrs.create('add_offset',modis_md['add_offset'])
-        arr_out.attrs.create('fill_value',modis_md['fill_value'])
-        arr_out.attrs.create('dx',modis_md['dx'])
-        arr_out.attrs.create('dy',modis_md['dy'])
+        arr_out.attrs.create('projection',utm33n_string)
+        arr_out.attrs.create('scale_factor',metno_md['scale_factor'])
+        arr_out.attrs.create('add_offset',metno_md['add_offset'])
+        arr_out.attrs.create('fill_value',metno_md['fill_value'])
+        arr_out.attrs.create('dx',metno_md['dx'])
+        arr_out.attrs.create('dy',metno_md['dy'])
 
 
-def Get_metno_md(metno_fn):
+def Get_metno_md():
     '''Return a dict giving the keys to unpack the optimized
     MODIS dataset values.
 
@@ -129,8 +132,6 @@ def Get_metno_md(metno_fn):
     '''
     out      = {}
 
-    metno = NetCDFFile(metno_fn,'r')
-
     out['dtype'] = np.dtype('int16') # or np.dtype('>i2') ?
     out['scale_factor'] = 0.1
     out['add_offset']   = 0
@@ -138,45 +139,6 @@ def Get_metno_md(metno_fn):
     out['dx'] = 1000
     out['dy'] = 1000
     return out
-
-
-def ERA_to_mdays(project,dset,start_time,src_nc):
-    '''era_series = Avg_to_mdays(x,y,dset=['sd' OR 't2m']'''
-
-    nclon = src_nc[0].variables['longitude'][:]
-    nclat = src_nc[0].variables['latitude'][:]
-    dlon  = nclon[1]-nclon[0]
-    dlat  = nclat[1]-nclat[0]
-
-    nclon = nclon - 0.5*dlon
-    nclat = nclat + 0.5*dlat
-
-    x_s,x_e,y_s,y_e = Get_spatial_indexes(nclon,nclat,project['aoi'])
-    # start_time assigned
-    end_time   = start_time+16*24
-    intervals = ID_intervals(start_time,end_time,src_nc)
-    era_vals = False
-    for k in range(len(intervals)):
-        if intervals[k]:
-            st = int(intervals[k][0])
-            fi = int(intervals[k][1])
-            tot= len(src_nc[k].variables['time'][:])
-            if fi==(tot-1):
-                fi = None
-
-            data = src_nc[k].variables[dset][st:fi,y_s:y_e,x_s:x_e]
-            if era_vals:
-                era_series = np.concatenate([era_series,data],axis=0)
-            else:
-                era_series = data
-                era_vals = True
-    if (era_series.shape[0]==16) or (era_series.shape[0]==64):
-        mean16day = np.mean(era_series,axis=0)
-    else:
-        print 'PROBLEMS WITH ERA SAMPLE!'
-        mean16day = 'PROBLEMS!!'
-    return mean16day
-
 
 
 def Gen_appendexes( project, hdfp ):
@@ -202,25 +164,44 @@ def Gen_appendexes( project, hdfp ):
     return appind
 
 
+def Load_metno_arr(hdfp, date):
+    metno_fn = "hdfp['src_dir'] + hdfp['sds'] + date"
+    nc = NetCDFFile(metno_fn,'r')
+    arr = nc.variables[hdfp['sds']][:]
+    return arr # flipud??
 
-def Append_to_hdf( project, hdfp, st_i,end_i):
+
+def METNO_to_mdays(hdfp, itime):
+    # TODO: replace string placeholders with actual code
+
+    modis_start = hdfp['modis_days'][itime] # todo (or end??)
+    modis_start = dt.datetime('modis_start')
+    modis_end = modis_start + dt.timedelta(days=16)
+    modis_range = 'code from metno download script'
+    src_range = np.ones((len(modis_range), ny, nx)) * -999
+    for i in range(len(modis_range)):
+        date = modis_range[i]
+        src_range[i] = Load_metno_arr(hdfp, date)
+
+    out = np.mean(src_range, axis=0)
+
+    return out
+
+
+def Append_to_hdf(  hdfp, st_i,end_i):
     """thread worker function"""
-    src_nc = Build_src_nc( project, hdfp )
+
     with h5py.File(hdfp['h5f'],"a") as hdf:
         for itime in range(st_i,end_i):
             try:
-                a = ERA_to_mdays( project,
-                                  hdfp['sds'],
-                                  hdfp['hdtime'][itime],
-                                  src_nc)
+                a = METNO_to_mdays( hdfp, itime)
                 hdf[hdfp['sds']][itime,:,:]=a
                 del a
-                toprint = project['modis_days'][itime]
+                toprint = hdfp['modis_days'][itime]
                 hdf['time'][itime] = hdfp['hdtime'][itime]
             except:
-                print project['modis_days'][itime],'NOVALUE'
+                print hdfp['modis_days'][itime],'NOVALUE'
                 hdf['time'][itime] = hdfp['hdtime'][itime]
-    del src_nc
 
 
 
@@ -239,25 +220,3 @@ def Continue_era_hdf( project, hdfp ):
             progress_bar.check(i)
         progress_bar.flush()
     print hdfp['sds'],'FINISHED!'
-
-
-def Era2hdf( project, sds ):
-    hdfp = {}
-    hdfp['sds'] = sds
-    hdfp['hdtime'] = [Yearday2hrnum(basedate,mday) for \
-                      mday in project['modis_days']]
-    hdfp['years']  = [int(yearday[:4]) for \
-                      yearday in project['modis_days']]
-    hdfp['ydays']  = [int(yearday[4:]) for \
-                      yearday in project['modis_days']]
-    hdfp['appendnum'] = 5 # records to append per process
-    hdfp['h5f'] = os.path.join(project['hdf_dir'],project['prj_name']+ \
-                               '_'+hdfp['sds']+'.hdf5')
-    if not os.path.isfile(hdfp['h5f']):
-        Start_era_hdf(project, hdfp )
-
-    Continue_era_hdf( project, hdfp )
-
-
-    print 'Bing!'
-
