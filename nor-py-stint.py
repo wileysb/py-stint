@@ -479,7 +479,9 @@ if __name__ == '__main__':
     project = Parse_input(input)
     project['modis_days']  = Get_modis_days( project['start_year'],
                                              project['end_year'])
-    
+
+    from Tools.MET_aggregator import Aggregate_metno_grids
+    Aggregate_metno_grids(project)
 
 
     normal_script = '''
