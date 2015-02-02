@@ -222,7 +222,7 @@ def Append_to_hdf(  hdfp, st_i,end_i):
                 hdf['time'][itime] = hdfp['time_var'][itime]
             except:
                 print hdfp['modis_days'][itime],'NOVALUE'
-                hdf['time'][itime] = hdfp['hdtime'][itime]
+                hdf['time'][itime] = hdfp['time_var'][itime]
 
 
 def Continue_metno_hdf( project, hdfp ):
