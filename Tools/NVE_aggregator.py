@@ -219,7 +219,7 @@ def Load_nve_arr(hdfp, date):
     band   = ascii.GetRasterBand(1)
     arr = band.ReadAsArray()
     del ascii, band
-    return arr[:,:,0] # np.flipud??
+    return arr # np.flipud??
 
 
 def NVE_to_mdays(hdfp, itime):
