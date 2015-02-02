@@ -483,6 +483,9 @@ if __name__ == '__main__':
     from Tools.MET_aggregator import Aggregate_metno_grids
     Aggregate_metno_grids(project)
 
+    from Tools.NVE_aggregator import Aggregate_nve_grids
+    Aggregate_nve_grids(project)
+
 
     normal_script = '''
     if len(sys.argv)==2:

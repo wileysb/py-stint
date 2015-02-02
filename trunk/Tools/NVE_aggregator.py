@@ -36,7 +36,7 @@ y_var = uly - dy*np.arange(ny)
 # hdf creation and
 #from Scientific.IO.NetCDF import NetCDFFile
 
-def Aggregate_metno_grids(project):
+def Aggregate_nve_grids(project):
     '''metnc2hdf'''
     ## COMMON VARIABLES ######
 
@@ -69,20 +69,45 @@ def Aggregate_metno_grids(project):
 
     ##### fsw #######  mm?  #############
     hdfp['sds'] = 'fsw'
+    fn = glob.glob(os.path.join(hdfp['nve_dir'], hdfp['sds'], '*.asc'))[0]
     nve_md = Get_nve_md(fn)
-    hdfp['h5f'] = os.path.join(project['metno_dir'],project['prj_name']+ \
+    hdfp['missing_value'] = nve_md['missing_value']
+    hdfp['h5f'] = os.path.join(project['nve_dir'],project['prj_name']+ \
                                '_'+hdfp['sds']+'.hdf5')
 
     if not os.path.isfile(hdfp['h5f']):
         Mk_hdf(hdfp, nve_md)
 
-    Continue_metno_hdf( project, hdfp )
+    Continue_nve_hdf( project, hdfp )
 
 
     ##### swe #######  mm?  #############
+    hdfp['sds'] = 'swe'
+    fn = glob.glob(os.path.join(hdfp['nve_dir'], hdfp['sds'], '*.asc'))[0]
+    nve_md = Get_nve_md(fn)
+    hdfp['missing_value'] = nve_md['missing_value']
+    hdfp['h5f'] = os.path.join(project['nve_dir'],project['prj_name']+ \
+                               '_'+hdfp['sds']+'.hdf5')
+
+    if not os.path.isfile(hdfp['h5f']):
+        Mk_hdf(hdfp, nve_md)
+
+    Continue_nve_hdf( project, hdfp )
+
 
 
     ##### sd  #######  cm?  #############
+    hdfp['sds'] = 'sd'
+    fn = glob.glob(os.path.join(hdfp['nve_dir'], hdfp['sds'], '*.asc'))[0]
+    nve_md = Get_nve_md(fn)
+    hdfp['missing_value'] = nve_md['missing_value']
+    hdfp['h5f'] = os.path.join(project['nve_dir'],project['prj_name']+ \
+                               '_'+hdfp['sds']+'.hdf5')
+
+    if not os.path.isfile(hdfp['h5f']):
+        Mk_hdf(hdfp, nve_md)
+
+    Continue_nve_hdf( project, hdfp )
 
 
 
@@ -107,7 +132,7 @@ def Mk_hdf( hdfp, nve_md ):
         x_out = hdf.create_dataset("x",data=x_var)
         y_out = hdf.create_dataset("y",data=y_var)
         t_out = hdf.create_dataset("time", (len(hdfp['time_var']),), \
-                                   dtype='int16') # unsigned int16 for sd & swe, unsigned int8 for fsw
+                                   dtype='int32') # unsigned int16 for sd & swe, unsigned int8 for fsw
         yr_out= hdf.create_dataset("year",data=hdfp['years'])
         day_out=hdf.create_dataset("yday",data=hdfp['ydays'])
         # Add metadata
@@ -187,27 +212,29 @@ def Gen_appendexes( project, hdfp ):
     return appind
 
 
-def Load_metno_arr(hdfp, date):
+def Load_nve_arr(hdfp, date):
     nve_fn_fmt = hdfp['nve_fn_fmt'][hdfp['sds']]
     nve_fn = nve_fn_fmt.format(date.year, '{:02d}'.format(date.month), '{:02d}'.format(date.day))
-    nc = gdal.Open(nve_fn,gdalconst.GA_ReadONly)
-    arr = nc.variables[hdfp['sds']][:]
-    return arr[:,:,0] # flipud??
+    ascii  = gdal.Open(nve_fn,gdalconst.GA_ReadONly)
+    band   = ascii.GetRasterBand(1)
+    arr = band.ReadAsArray()
+    del ascii, band
+    return arr[:,:,0] # np.flipud??
 
 
-def METNO_to_mdays(hdfp, itime):
+def NVE_to_mdays(hdfp, itime):
     # TODO: replace string placeholders with actual code
 
     modis_start = hdfp['modis_days'][itime]
     modis_start = dt.datetime.strptime(str(modis_start), '%Y%j')
     numdays = 16
     modis_range = [modis_start + dt.timedelta(days=x) for x in range(0, numdays)]
-    src_range = np.ones((len(modis_range), ny, nx)) * -999
+    src_range = np.ones((len(modis_range), ny, nx)) * hdfp['missing_value'] # missing value here would screw up interpolation if some dates failed to load.  However, the functions here don't have any error tolerance, so it should fail at 'append to hdf' rather than load_arr or _to_mdays
     for i in range(len(modis_range)):
         date = modis_range[i]
-        src_range[i] = Load_metno_arr(hdfp, date)
+        src_range[i] = Load_nve_arr(hdfp, date)
 
-    out = np.mean(src_range, axis=0)
+    out = np.mean(src_range, axis=0) # todo nans? Since these are modelled / interpolated datasets, nans should be spatial constants?
 
     return out
 
@@ -218,7 +245,7 @@ def Append_to_hdf(  hdfp, st_i,end_i):
     with h5py.File(hdfp['h5f'],"a") as hdf:
         for itime in range(st_i,end_i):
             try:
-                a = METNO_to_mdays( hdfp, itime)
+                a = NVE_to_mdays( hdfp, itime)
                 hdf[hdfp['sds']][itime,:,:]=a
                 del a
                 toprint = hdfp['modis_days'][itime]
@@ -228,7 +255,7 @@ def Append_to_hdf(  hdfp, st_i,end_i):
                 hdf['time'][itime] = hdfp['time_var'][itime]
 
 
-def Continue_metno_hdf( project, hdfp ):
+def Continue_nve_hdf( project, hdfp ):
     print 'Continuing', hdfp['sds'], hdfp['h5f']
     start_end = Gen_appendexes( project, hdfp )
     if start_end:
