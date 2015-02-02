@@ -233,7 +233,7 @@ def Continue_metno_hdf( project, hdfp ):
         for i,s_e in enumerate(start_end):
             toprint = project['modis_days'][s_e[0]]
             p = multiprocessing.Process(target=Append_to_hdf, \
-                                  args=(project, hdfp, s_e[0], s_e[1]))
+                                  args=( hdfp, s_e[0], s_e[1]))
             p.start()
             p.join() # main script waits for this child to grow up
 
