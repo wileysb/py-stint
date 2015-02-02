@@ -3,15 +3,12 @@
 ## spatial subset
 
 import os
-import sys
 import osr
 import h5py
 import multiprocessing
 import numpy as np
 import datetime as dt
 from scipy.io.netcdf import netcdf_file as NetCDFFile
-from MODIS_aoi import Mk_bbox
-from ORG_tools import Yearday2hrnum
 from ORG_tools import Countdown
 
 ### DEFINE PROJECTION, UTM33N
@@ -24,7 +21,7 @@ dx = dy = 1000 # (m)
 # The southwestern corner of the grid has the coordinates
 llx = -75000  # and
 lly = 6450000 # in the UTM33 system if you prefer this coordinate system.
-
+,
 nx = 1195
 ny = 1550
 
@@ -45,7 +42,11 @@ def Aggregate_metno_grids(project):
     hdfp = {} # hdf parameters
     hdfp['appendnum']   = 5
     hdfp['metno_dir']   = '/space/wib_data/CLIMATE/METNO' # project['metno_dir']
-    hdfp['sds_fn_fmt']  = {}
+    hdfp['metno_fn_fmt']  = {}
+    tam_fmt =  'tam/tam24hNOgrd1957on_{0}_{1}_{2}.nc' # .format(YYYY, MM, DD)
+    rr_fmt =  'rr/rr24hNOgrd1957on_{0}_{1}_{2}.nc' # .format(YYYY, MM, DD)
+    hdfp['metno_fn_fmt']['tam'] = os.path.join(hdfp['metno_dir'], tam_fmt)
+    hdfp['metno_fn_fmt']['rr'] = os.path.join(hdfp['metno_dir'], rr_fmt)
     hdfp['modis_days']  = project['modis_days']
     hdfp['NODATA']      = np.nan
     hdfp['years'] = [int(str(modis_days[i])[:4]) for i in \
@@ -70,8 +71,6 @@ def Aggregate_metno_grids(project):
     hdfp['h5f'] = os.path.join(project['metno_dir'],project['prj_name']+ \
                                '_'+hdfp['sds']+'.hdf5')
 
-    tam_fmt =  'tam/tam24hNOgrd1957on_{0}_{1}_{2}.nc' # .format(YYYY, MM, DD)
-    hdfp['sds_fn_fmt']['tam'] = os.path.join(hdfp['metno_dir'], tam_fmt)
     if not os.path.isfile(hdfp['h5f']):
         Mk_hdf(hdfp, metno_md)
 
@@ -81,8 +80,7 @@ def Aggregate_metno_grids(project):
     hdfp['sds'] = 'rr'
     hdfp['h5f'] = os.path.join(project['metno_dir'],project['prj_name']+ \
                                '_'+hdfp['sds']+'.hdf5')
-    rr_fmt =  'rr/rr24hNOgrd1957on_{0}_{1}_{2}.nc' # .format(YYYY, MM, DD)
-    hdfp['sds_fn_fmt']['rr'] = os.path.join(hdfp['metno_dir'], rr_fmt)
+
     if not os.path.isfile(hdfp['h5f']):
         Mk_hdf(hdfp, metno_md)
 
@@ -108,7 +106,7 @@ def Mk_hdf( hdfp, metno_md ):
         #arr_out = hdf.create_dataset(hdfp['sds'],dshape,dtype='int16', \
         arr_out = hdf.create_dataset(hdfp['sds'],dshape,dtype=metno_md['dtype'], \
           chunks=True,compression='lzf') #compression='gzip' or 'szip'
-        arr_out[:] = metno_md['fill_value']
+        # arr_out[:] = metno_md['fill_value'] # Too slow!!
         x_out = hdf.create_dataset("x",data=x_var)
         y_out = hdf.create_dataset("y",data=y_var)
         t_out = hdf.create_dataset("time", (len(hdfp['time_var']),), \
@@ -191,7 +189,7 @@ def Load_metno_arr(hdfp, date):
     metno_fn = metno_fn_fmt.format(date.year, '{:02d}'.format(date.month), '{:02d}'.format(date.day))
     nc = NetCDFFile(metno_fn,'r')
     arr = nc.variables[hdfp['sds']][:]
-    return arr.flipud() # flipud??
+    return np.flipud(arr)[:,:,0] # flipud??
 
 
 def METNO_to_mdays(hdfp, itime):
@@ -200,7 +198,7 @@ def METNO_to_mdays(hdfp, itime):
     modis_start = hdfp['modis_days'][itime]
     modis_start = dt.datetime.strptime(str(modis_start), '%Y%j')
     numdays = 16
-    modis_range = (modis_start + dt.timedelta(days=x) for x in range(0, numdays))
+    modis_range = [modis_start + dt.timedelta(days=x) for x in range(0, numdays)]
     src_range = np.ones((len(modis_range), ny, nx)) * -999
     for i in range(len(modis_range)):
         date = modis_range[i]
