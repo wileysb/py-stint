@@ -45,9 +45,9 @@ def Aggregate_nve_grids(project):
     hdfp['appendnum']   = 5
     hdfp['nve_dir']   = '/space/wib_data/CLIMATE/NVE' # project['metno_dir']
     hdfp['nve_fn_fmt']  = {}
-    fsw_fmt =  'fsw/fsw_{0}_{1}_{2}.nc' # .format(YYYY, MM, DD)
-    swe_fmt =  'swe/swe_{0}_{1}_{2}.nc' # .format(YYYY, MM, DD)
-    sd_fmt =  'sd/sd_{0}_{1}_{2}.nc' # .format(YYYY, MM, DD)
+    fsw_fmt =  'fsw/fsw_{0}_{1}_{2}.asc' # .format(YYYY, MM, DD)
+    swe_fmt =  'swe/swe_{0}_{1}_{2}.asc' # .format(YYYY, MM, DD)
+    sd_fmt =  'sd/sd_{0}_{1}_{2}.asc' # .format(YYYY, MM, DD)
     hdfp['nve_fn_fmt']['fsw'] = os.path.join(hdfp['nve_dir'], fsw_fmt)
     hdfp['nve_fn_fmt']['swe'] = os.path.join(hdfp['nve_dir'], swe_fmt)
     hdfp['nve_fn_fmt']['sd'] = os.path.join(hdfp['nve_dir'], sd_fmt)
@@ -72,7 +72,7 @@ def Aggregate_nve_grids(project):
     fn = glob.glob(os.path.join(hdfp['nve_dir'], hdfp['sds'], '*.asc'))[0]
     nve_md = Get_nve_md(fn)
     hdfp['fill_value'] = nve_md['fill_value']
-    hdfp['h5f'] = os.path.join(project['nve_dir'],project['prj_name']+ \
+    hdfp['h5f'] = os.path.join(hdfp['nve_dir'],project['prj_name']+ \
                                '_'+hdfp['sds']+'.hdf5')
 
     if not os.path.isfile(hdfp['h5f']):
@@ -215,7 +215,7 @@ def Gen_appendexes( project, hdfp ):
 def Load_nve_arr(hdfp, date):
     nve_fn_fmt = hdfp['nve_fn_fmt'][hdfp['sds']]
     nve_fn = nve_fn_fmt.format(date.year, '{:02d}'.format(date.month), '{:02d}'.format(date.day))
-    ascii  = gdal.Open(nve_fn,gdalconst.GA_ReadONly)
+    ascii  = gdal.Open(nve_fn,gdalconst.GA_ReadOnly)
     band   = ascii.GetRasterBand(1)
     arr = band.ReadAsArray()
     del ascii, band
