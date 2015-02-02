@@ -71,7 +71,7 @@ def Aggregate_nve_grids(project):
     hdfp['sds'] = 'fsw'
     fn = glob.glob(os.path.join(hdfp['nve_dir'], hdfp['sds'], '*.asc'))[0]
     nve_md = Get_nve_md(fn)
-    hdfp['missing_value'] = nve_md['missing_value']
+    hdfp['fill_value'] = nve_md['fill_value']
     hdfp['h5f'] = os.path.join(project['nve_dir'],project['prj_name']+ \
                                '_'+hdfp['sds']+'.hdf5')
 
@@ -85,7 +85,7 @@ def Aggregate_nve_grids(project):
     hdfp['sds'] = 'swe'
     fn = glob.glob(os.path.join(hdfp['nve_dir'], hdfp['sds'], '*.asc'))[0]
     nve_md = Get_nve_md(fn)
-    hdfp['missing_value'] = nve_md['missing_value']
+    hdfp['fill_value'] = nve_md['fill_value']
     hdfp['h5f'] = os.path.join(project['nve_dir'],project['prj_name']+ \
                                '_'+hdfp['sds']+'.hdf5')
 
@@ -100,7 +100,7 @@ def Aggregate_nve_grids(project):
     hdfp['sds'] = 'sd'
     fn = glob.glob(os.path.join(hdfp['nve_dir'], hdfp['sds'], '*.asc'))[0]
     nve_md = Get_nve_md(fn)
-    hdfp['missing_value'] = nve_md['missing_value']
+    hdfp['fill_value'] = nve_md['fill_value']
     hdfp['h5f'] = os.path.join(project['nve_dir'],project['prj_name']+ \
                                '_'+hdfp['sds']+'.hdf5')
 
@@ -229,7 +229,7 @@ def NVE_to_mdays(hdfp, itime):
     modis_start = dt.datetime.strptime(str(modis_start), '%Y%j')
     numdays = 16
     modis_range = [modis_start + dt.timedelta(days=x) for x in range(0, numdays)]
-    src_range = np.ones((len(modis_range), ny, nx)) * hdfp['missing_value'] # missing value here would screw up interpolation if some dates failed to load.  However, the functions here don't have any error tolerance, so it should fail at 'append to hdf' rather than load_arr or _to_mdays
+    src_range = np.ones((len(modis_range), ny, nx)) * hdfp['fill_value'] # missing value here would screw up interpolation if some dates failed to load.  However, the functions here don't have any error tolerance, so it should fail at 'append to hdf' rather than load_arr or _to_mdays
     for i in range(len(modis_range)):
         date = modis_range[i]
         src_range[i] = Load_nve_arr(hdfp, date)
