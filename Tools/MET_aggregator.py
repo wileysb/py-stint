@@ -79,6 +79,8 @@ def Aggregate_metno_grids(project):
 
     ##### PRECIP ###########################
     hdfp['sds'] = 'rr'
+    hdfp['h5f'] = os.path.join(project['metno_dir'],project['prj_name']+ \
+                               '_'+hdfp['sds']+'.hdf5')
     rr_fmt =  'rr/rr24hNOgrd1957on_{0}_{1}_{2}.nc' # .format(YYYY, MM, DD)
     hdfp['sds_fn_fmt']['rr'] = os.path.join(hdfp['metno_dir'], rr_fmt)
     if not os.path.isfile(hdfp['h5f']):
