@@ -21,7 +21,7 @@ dx = dy = 1000 # (m)
 # The southwestern corner of the grid has the coordinates
 llx = -75000  # and
 lly = 6450000 # in the UTM33 system if you prefer this coordinate system.
-,
+
 nx = 1195
 ny = 1550
 
