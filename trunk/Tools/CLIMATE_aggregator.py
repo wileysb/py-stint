@@ -167,7 +167,7 @@ def Mk_hdf( hdfp ):
         # access later: hdf[sds].attrs['scale_factor']
         t_out.attrs.create('time_format','Days since %s' \
                                         % hdfp['start_date'])
-        t_out.attrs.create('basedate',str(hdfp['start_date']))
+        t_out.attrs.create('basedate',hdfp['start_date']).isoformat()
         arr_out.attrs.create('projection',utm33n_string)
         arr_out.attrs.create('scale_factor',hdfp['scale_factor'])
         arr_out.attrs.create('add_offset',hdfp['add_offset'])
@@ -190,10 +190,10 @@ def Gen_appendexes( hdfp ):
             elif (diff_p==0).all():
                 i_st = 0
             appind = []
-            while (i_st+hdfp['appendnum'])<len(hdfp['modis_days']):
+            while (i_st+hdfp['appendnum'])<len(hdfp['daterange']):
                 appind.append((i_st,i_st+hdfp['appendnum']))
                 i_st+=hdfp['appendnum']
-            appind.append((i_st,len(hdfp['modis_days'])))
+            appind.append((i_st,len(hdfp['daterange'])))
         else:
             print hdfp['sds'],'already done??'
             appind=False
@@ -239,11 +239,11 @@ def Append_to_hdf(  hdfp, st_i,end_i):
                 a = Load_arr( hdfp, itime)
                 hdf[hdfp['sds']][itime,:,:]=a
                 del a
-                toprint = hdfp['modis_days'][itime]
+                toprint = hdfp['time_var'][itime]
                 hdf['time'][itime] = hdfp['time_var'][itime]
             except:
                 hdf[hdfp['sds']][itime,:,:]=hdfp['fill_value']
-                print hdfp['modis_days'][itime],'NODATA'
+                print hdfp['daterange'][itime].isoformat(),'NODATA'
 
                 hdf['time'][itime] = hdfp['time_var'][itime]
 
