@@ -163,7 +163,6 @@ def Mk_hdf( hdfp ):
         t_out = hdf.create_dataset("time", (len(hdfp['time_var']),), \
                                    dtype='int16')
         date_out = hdf.create_dataset("date",data = [d.isoformat() for d in hdfp['daterange']])
-        yr_out= hdf.create_dataset("year",data=hdfp['years'])
         # Add metadata
         # access later: hdf[sds].attrs['scale_factor']
         t_out.attrs.create('time_format','Days since %s' \
