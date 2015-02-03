@@ -52,6 +52,7 @@ def Aggregate_climate_grids(project):
 
     hdfp['start_date']  = start_date
     hdfp['daterange']   = daterange
+    hdfp['date_list'] = [(d.isoformat()).encode("ascii", "ignore") for d in daterange]
     hdfp['time_var']    = np.array([(idate-start_date).total_seconds()/86400. for \
                                      idate in daterange],dtype='int16')
     hdfp['appendnum']   = 5
@@ -109,7 +110,7 @@ def Aggregate_climate_grids(project):
     Continue_hdf( hdfp )
 
     ## MET.NO ###
-    hdfp['dtype'] = np.dtype('int16') # or np.dtype('>i2') ?
+    hdfp['dtype'] = np.dtype('int16')
     hdfp['scale_factor'] = 0.1
     hdfp['add_offset']   = 0
     hdfp['fill_value']   = int(-999)
@@ -154,15 +155,14 @@ def Mk_hdf( hdfp ):
 
     with h5py.File(hdfp['h5f'],"w") as hdf:
         dshape=(len(hdfp['time_var']),len(y_var),len(x_var))
-        #arr_out = hdf.create_dataset(hdfp['sds'],dshape,dtype='int16', \
         arr_out = hdf.create_dataset(hdfp['sds'],dshape,dtype=hdfp['dtype'], \
           chunks=True,compression='lzf') #compression='gzip' or 'szip'
-        # arr_out[:] = hdfp['fill_value'] # Too slow!!
         x_out = hdf.create_dataset("x",data=x_var)
         y_out = hdf.create_dataset("y",data=y_var)
         t_out = hdf.create_dataset("time", (len(hdfp['time_var']),), \
                                    dtype='int16')
-        date_out = hdf.create_dataset("date",data = [d.isoformat() for d in hdfp['daterange']])
+        date_out = hdf.create_dataset('date', (len(hdfp['date_list']),1),'S10', hdfp['date_list'])
+
         # Add metadata
         # access later: hdf[sds].attrs['scale_factor']
         t_out.attrs.create('time_format','Days since %s' \
