@@ -167,7 +167,7 @@ def Mk_hdf( hdfp ):
         # access later: hdf[sds].attrs['scale_factor']
         t_out.attrs.create('time_format','Days since %s' \
                                         % hdfp['start_date'])
-        t_out.attrs.create('basedate',hdfp['start_date']).isoformat()
+        t_out.attrs.create('basedate',hdfp['start_date'].isoformat())
         arr_out.attrs.create('projection',utm33n_string)
         arr_out.attrs.create('scale_factor',hdfp['scale_factor'])
         arr_out.attrs.create('add_offset',hdfp['add_offset'])
