@@ -52,7 +52,7 @@ def Aggregate_climate_grids(project):
 
     hdfp['start_date']  = start_date
     hdfp['daterange']   = daterange
-    hdfp['time_var']    = np.array([(idate,-hdfp['basedate']).total_seconds()/86400. for \
+    hdfp['time_var']    = np.array([(idate-start_date).total_seconds()/86400. for \
                                      idate in daterange],dtype='int16')
     hdfp['appendnum']   = 5
     hdfp['climate_dir'] = '/space/wib_data/CLIMATE'
