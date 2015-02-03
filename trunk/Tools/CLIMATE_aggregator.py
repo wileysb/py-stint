@@ -44,8 +44,8 @@ def Aggregate_climate_grids(project):
     hdfp = {} # hdf parameters
 
     #  Get Date range from modis_days
-    start_date = dt.datetime.strptime(str(project['modis_days'][0]), '%Y%j')
-    end_date   = dt.datetime.strptime(str(project['modis_days'][-1]), '%Y%j')
+    start_date = dt.datetime.strptime(str(project['modis_days'][0]), '%Y%j').date()
+    end_date   = dt.datetime.strptime(str(project['modis_days'][-1]), '%Y%j').date()
 
     numdays = (end_date-start_date).days + 1
     daterange = [start_date + dt.timedelta(days=x) for x in range(0, numdays)]
