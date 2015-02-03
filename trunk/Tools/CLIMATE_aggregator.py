@@ -52,6 +52,8 @@ def Aggregate_climate_grids(project):
 
     hdfp['start_date']  = start_date
     hdfp['daterange']   = daterange
+    hdfp['time_var']    = np.array([(idate,-hdfp['basedate']).total_seconds()/86400. for \
+                                     idate in daterange],dtype='int16')
     hdfp['appendnum']   = 5
     hdfp['climate_dir'] = '/space/wib_data/CLIMATE'
     hdfp['metno_fmt']   = os.path.join(hdfp['climate_dir'],'METNO','{0]}/{0}24hNOgrd1957on_{1}_{2}_{3}.nc') # .format (hdfp['sds'], date.year, '{:02d}'.format(date.month), '{:02d}'.format(date.day))
