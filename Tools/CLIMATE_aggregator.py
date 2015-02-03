@@ -57,8 +57,8 @@ def Aggregate_climate_grids(project):
                                      idate in daterange],dtype='int16')
     hdfp['appendnum']   = 5
     hdfp['climate_dir'] = '/space/wib_data/CLIMATE'
-    hdfp['metno_fmt']   = os.path.join(hdfp['climate_dir'],'METNO','{0]}/{0}24hNOgrd1957on_{1}_{2}_{3}.nc') # .format (hdfp['sds'], date.year, '{:02d}'.format(date.month), '{:02d}'.format(date.day))
-    hdfp['nve_fmt']   = os.path.join(hdfp['climate_dir'],'METNO','{0}/{0}_{1}_{2}_{3}.asc') # .format (hdfp['sds'], date.year, '{:02d}'.format(date.month), '{:02d}'.format(date.day))
+    hdfp['metno_fmt']   = os.path.join(hdfp['climate_dir'],'METNO','{0}/{0}24hNOgrd1957on_{1}_{2}_{3}.nc') # .format (hdfp['sds'], date.year, '{:02d}'.format(date.month), '{:02d}'.format(date.day))
+    hdfp['nve_fmt']   = os.path.join(hdfp['climate_dir'],'NVE','{0}/{0}_{1}_{2}_{3}.asc') # .format (hdfp['sds'], date.year, '{:02d}'.format(date.month), '{:02d}'.format(date.day))
 
     ### NVE ###
     # sd
@@ -202,7 +202,7 @@ def Gen_appendexes( hdfp ):
 
 def Load_metno_arr(hdfp, date):
     metno_fn_fmt = hdfp['metno_fmt']
-    metno_fn = metno_fn_fmt.format (hdfp['sds'], date.year, '{:02d}'.format(date.month), '{:02d}'.format(date.day))
+    metno_fn = metno_fn_fmt.format(hdfp['sds'], date.year, '{:02d}'.format(date.month), '{:02d}'.format(date.day))
     nc = NetCDFFile(metno_fn,'r')
     arr = nc.variables[hdfp['sds']][:]
     return np.flipud(arr)[:,:,0] # flipud??
@@ -218,7 +218,8 @@ def Load_nve_arr(hdfp, date):
     return arr # np.flipud??
 
 
-def Load_arr(hdfp, date):
+def Load_arr(hdfp, itime):
+    date = hdfp['daterange'][itime]
     if hdfp['sds'] in ['sd', 'fsw', 'swe']:
         a = Load_nve_arr(hdfp, date)
     elif hdfp['sds'] in ['tam','rr']:
