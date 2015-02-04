@@ -588,6 +588,8 @@ def Mk_polygrid(params):
     dy   = params['dy']
     prj  = params['srs']
     outf = params['outf']
+    if 'idx' in params.keys():
+        r = FastRtree(outf,interleaved=True)
     
     # Define outfile as shapefile, with feature type polygon
     driver = ogr.GetDriverByName('Esri Shapefile')
@@ -639,6 +641,8 @@ def Mk_polygrid(params):
             feat.SetGeometry(polygon)
 
             layer.CreateFeature(feat)
+            if 'idx' in params.keys():
+                r.insert(idVar,(x, y - dy, x + dx, y))
             feat = geom = None
             idVar += 1
             x += dx
@@ -656,6 +660,8 @@ def Mk_polygrid(params):
     # Save and close everything
     ds = layer = feat = perim = polygon = None
     # sys.stdout.write("\n")
+    if 'idx' in params.keys():
+        r.close()
     progress_bar.flush()
     prj = params['srs'].ExportToWkt()
     Mk_proj( prj, params['outf'] )
