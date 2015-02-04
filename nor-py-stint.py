@@ -67,7 +67,7 @@ if __name__ == '__main__':
     climate_params['outf'] = climate_shp
     climate_params['idx'] = 'yes, please'
     print 'Creating '+pre+'climate.shp from '+os.path.split(climate_fn)[1]
-    # todo done Tools.SPATIAL_tools.Mk_polygrid(climate_params )
+    Tools.SPATIAL_tools.Mk_polygrid(climate_params )
 
     # define CLIMATE shapefile as project['aoi']
     project['aoi']     = Parse_extents(climate_shp+'.shp')
