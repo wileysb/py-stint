@@ -328,7 +328,7 @@ def Mk_hdf( hdfp, x_var, y_var, modis_md ):
         #arr_out = hdf.create_dataset(hdfp['sds'],dshape,dtype='int16', \
         arr_out = hdf.create_dataset(hdfp['sds'],dshape,dtype=modis_md['dtype'], \
           chunks=True,compression='lzf') #compression='gzip' or 'szip'
-        arr_out[:] = modis_md['fill_value']
+        # arr_out[:] = modis_md['fill_value'] # todo go back in later, find these locations, and replace with fill_value
         x_out = hdf.create_dataset("x",data=x_var)
         y_out = hdf.create_dataset("y",data=y_var)
         t_out = hdf.create_dataset("time", (len(hdfp['time_var']),), \
