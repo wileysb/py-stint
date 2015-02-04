@@ -37,7 +37,7 @@ if __name__ == '__main__':
 
     project['climate_dir'] = '/space/wib_data/CLIMATE'
 
-    project['prj_directory'] = '/space/wib_data/ssarV2' # is this already loaded in parse_input?
+    # project['prj_directory'] = '/space/wib_data/ssarV2' # is this already loaded in parse_input?
 
     # MAKE HDF, SHP, CSV
     hdf_dir = os.path.join(project['prj_directory'],'HDF/')
