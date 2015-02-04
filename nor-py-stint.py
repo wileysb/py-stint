@@ -26,7 +26,6 @@ def prj_mkdir(dir_path):
 
 if __name__ == '__main__':
 
-    nor_py_cmds = '''running below!'''
     input = '/space/wib_data/ssarV2/ssarV2_INPUT.txt'
     project = Parse_input(input)
 
@@ -56,7 +55,7 @@ if __name__ == '__main__':
 
     ### AGGREGATE NVE AND METNO CLIMATE DIRECTORIES TO HDF5, WHOLE NORWAY
     from Tools.CLIMATE_aggregator import Aggregate_climate_grids
-    Aggregate_climate_grids(project)
+    # todo done Aggregate_climate_grids(project)
 
     ### CLIMATE shapefile grid + idx
     pre = project['prj_name']
@@ -68,13 +67,16 @@ if __name__ == '__main__':
     climate_params['outf'] = climate_shp
     climate_params['idx'] = 'yes, please'
     print 'Creating '+pre+'climate.shp from '+os.path.split(climate_fn)[1]
-    Tools.SPATIAL_tools.Mk_polygrid(climate_params )
+    # todo done Tools.SPATIAL_tools.Mk_polygrid(climate_params )
 
     # define CLIMATE shapefile as project['aoi']
     project['aoi']     = Parse_extents(climate_shp+'.shp')
 
     ### MODIS hdf5 subset (climate NORWAY extents)
-    project['modis_tiles'] = Check_mod_tiles(modis_tile_fn=project['modis_tile_fn'],**project['aoi'])
+    # project['modis_tiles'] = Check_mod_tiles(modis_tile_fn=project['modis_tile_fn'],**project['aoi'])
+
+    project['modis_tiles'] = ['h18v01', 'h18v02', 'h18v03', 'h19v01', 'h19v02', 'h19v03']
+
     for dset in project['modis'].keys():
         for dnum in project['modis'][dset].keys():
             Mod2hdf( project, dset, dnum )
