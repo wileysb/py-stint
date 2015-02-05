@@ -573,6 +573,51 @@ def Mk_bbox(xmin,ymin,xmax,ymax):
     return bbox
 
 
+
+def Add_idx( src_dsn ):
+    '''Add_idx( src_dsn )
+
+    add an rtree index (src.idx) to a shapefile fileset
+
+    :param src1_dsn: (str) path to first input shapefile, no extensions
+    :param src1_pre: (str) characters to prepend to output fields preserved from 1st src dsn
+    :param src1_id: (str) characters to prepend to id field in output dataset
+    :param src1_fields: (list) list of field names to preserve from 1st input dataset
+    :param area: (bool) True if 'area' attribute should be output
+    :param src2_dsn: (str) path to second input shapefile, no extensions
+    :param src2_pre: (str) characters to prepend to output fields preserved from 2nd src dsn
+    :param src2_id: (str) characters to prepend to id field in output dataset
+    :param src2_fields: (list) list of field names to preserve from 2nd input dataset
+    :param dst_dsn: (str) path to output shapefile, no extensions
+    :return: None
+    '''
+
+    # Load first dataset, and projection
+    src_ds, src_lyr  = Ogr_open(src_dsn)
+
+    # Open output index
+    r  = FastRtree( src_dsn,interleaved=True)
+
+    # Initialize progress updater
+    count_max    = float(src_lyr.GetFeatureCount())
+    # count_update = count_max * 0.05 # print progress every 5%!
+    progress_bar = Countdown(count_max)
+
+    # Loop through features in src1
+    for fid in range(0,count_max):
+        src_feat = src_lyr.GetFeature(fid)
+        geom = src_feat.GetGeometryRef()
+
+        xmin,xmax,ymin,ymax = geom.GetEnvelope()
+
+
+        r.insert(fid,(xmin,ymin,xmax,ymax))
+        progress_bar.check(fid)
+    progress_bar.flush()
+    r.close()
+    dst_r = dst_ds = dst_lyr = dst_feat = isect = defn = None
+
+
 def Mk_polygrid(params):
     '''Mk_polygrid(**params) 
     after params = Parse_extents(rasterfile)
