@@ -573,22 +573,12 @@ def Mk_bbox(xmin,ymin,xmax,ymax):
     return bbox
 
 
-
 def Add_idx( src_dsn ):
     '''Add_idx( src_dsn )
 
     add an rtree index (src.idx) to a shapefile fileset
 
-    :param src1_dsn: (str) path to first input shapefile, no extensions
-    :param src1_pre: (str) characters to prepend to output fields preserved from 1st src dsn
-    :param src1_id: (str) characters to prepend to id field in output dataset
-    :param src1_fields: (list) list of field names to preserve from 1st input dataset
-    :param area: (bool) True if 'area' attribute should be output
-    :param src2_dsn: (str) path to second input shapefile, no extensions
-    :param src2_pre: (str) characters to prepend to output fields preserved from 2nd src dsn
-    :param src2_id: (str) characters to prepend to id field in output dataset
-    :param src2_fields: (list) list of field names to preserve from 2nd input dataset
-    :param dst_dsn: (str) path to output shapefile, no extensions
+    :param src1_dsn: (str) path to input shapefile, no extensions
     :return: None
     '''
 
@@ -604,7 +594,7 @@ def Add_idx( src_dsn ):
     progress_bar = Countdown(count_max)
 
     # Loop through features in src1
-    for fid in range(0,count_max):
+    for fid in range(0,int(count_max)):
         src_feat = src_lyr.GetFeature(fid)
         geom = src_feat.GetGeometryRef()
 
