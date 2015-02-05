@@ -110,11 +110,14 @@ if __name__ == '__main__':
     print 'Reprojecting '+pre+'modis.shp to project reference system and creating rtree index'
     Tools.SPATIAL_tools.Reprj_and_idx( **mod_reprj)
 
+
+
+     # todo major
     ### intersections:
-    # Create blocks of 30x30 MODIS cells
-    #
-    # todo major
+    # idx tile_bounds.shp
+    # Define blocks of 30x30 MODIS cells (cells MUST NOT repeat!!)
     # for given unique, unrepeated block (30x30) of MODIS cells:
-        # for those cells which intersect landcover data:
+        # which regions ('tile_id') in tile_bounds.shp intersect block
+        # for those tile_id which intersect block:
             # intersect modis features, climate features, lc features
             # export to csv
