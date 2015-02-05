@@ -55,7 +55,7 @@ if __name__ == '__main__':
 
     ### AGGREGATE NVE AND METNO CLIMATE DIRECTORIES TO HDF5, WHOLE NORWAY
     from Tools.CLIMATE_aggregator import Aggregate_climate_grids
-    # todo done Aggregate_climate_grids(project)
+    Aggregate_climate_grids(project)
 
     ### CLIMATE shapefile grid + idx
     pre = project['prj_name']
@@ -111,8 +111,10 @@ if __name__ == '__main__':
     Tools.SPATIAL_tools.Reprj_and_idx( **mod_reprj)
 
     ### intersections:
+    # Create blocks of 30x30 MODIS cells
+    #
     # todo major
-    # for given unique, unrepeated block (25x25) of MODIS cells:
+    # for given unique, unrepeated block (30x30) of MODIS cells:
         # for those cells which intersect landcover data:
             # intersect modis features, climate features, lc features
             # export to csv
