@@ -117,9 +117,9 @@ def Isect_mod_clim_ssar(project):
                     feat =  None
                     idVar += 1
 
-                    tile_out_fmt = os.path.join(project['csv_dir'], 'ssarV2_{0}_'+tile_id+'.csv')
-                    modis_rows_to_write = []
-                    climate_rows_to_write = []
+                    tile_out_fmt = os.path.join(project['csv_dir'], 'ssarV2_{0}_'+tile_id+'.csv') # .format(sds)
+                    modis_rows_to_write = set()
+                    climate_rows_to_write = set()
 
                     # generate modis features in tile
                     # - transform to utm33
