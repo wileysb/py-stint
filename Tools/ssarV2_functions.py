@@ -93,11 +93,16 @@ def Isect_mod_clim_ssar(project):
         tile_x_ind = 0
         while round(tile_ulx,3) < round(mod_xmax,3):
             new_tile = True
+
             tile_xmin = tile_ulx
-            tile_ymin = tile_uly - tile_y_ind*tile_dy
-            tile_xmax = tile_ulx + tile_x_ind*tile_dx
+            tile_ymin = tile_uly - tile_dy
+            tile_xmax = tile_ulx + tile_dx
             tile_ymax = tile_uly
-            #tile_y_ind = 83; tile_x_ind = 34 # xmin, ymin, xmax, ymax
+
+            # if creating from scratch:
+            # tile_y_ind = 83; tile_x_ind = 34
+            #tile_ymin = tile_uly - tile_y_ind*tile_dy
+            #tile_xmax = tile_ulx + tile_x_ind*tile_dx
 
             tile_bbox_utm33 = Mk_bbox(tile_xmin, tile_ymin, tile_xmax, tile_ymax)
             tile_bbox_utm33.Transform(sin2utm33n)
@@ -106,8 +111,7 @@ def Isect_mod_clim_ssar(project):
 
             if tile_bbox_utm33.Intersects(climate_bbox):
                 hits = ssarV1_r.intersection((txmin,tymin,txmax,tymax)) # (gxmin,gymin,gxmax,gymax)
-                for hit_fid in hits: # todo this isn't working for tile_y_ind = 83; tile_x_ind = 34; tile_ulx = mod_xmin + tile_x_ind*mod_dx; tile_uly = mod_ymax - tile_y_ind*mod_dy
-
+                for hit_fid in hits:
                     if new_tile == True:
                         tile_id = '{0}_{1}'.format(tile_y_ind,tile_x_ind)
 
