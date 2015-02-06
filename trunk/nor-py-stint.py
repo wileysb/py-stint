@@ -94,7 +94,8 @@ if __name__ == '__main__':
     mod_params         = Parse_extents( modis_fn )
     mod_params['outf'] = modis_shp
     print 'Creating '+pre+'modis.shp from '+modis_fn
-    Tools.SPATIAL_tools.Mk_polygrid( mod_params )
+    if not os.path.isfile(modis_shp+'.shp'):
+        Tools.SPATIAL_tools.Mk_polygrid( mod_params )
 
     ### REPROJECT + IDX MODIS shapefile grid
     pre  = project['prj_name']+'_' # start to all the project files
@@ -108,16 +109,39 @@ if __name__ == '__main__':
                  'fields':['ctr_x','ctr_y','x_ind','y_ind']}
     mod_reprj['area'] = True
     print 'Reprojecting '+pre+'modis.shp to project reference system and creating rtree index'
-    Tools.SPATIAL_tools.Reprj_and_idx( **mod_reprj)
+    if not os.path.isfile(mod_tx+'.shp'):
+        Tools.SPATIAL_tools.Reprj_and_idx( **mod_reprj)
 
 
 
      # todo major
     ### intersections:
     # idx tile_bounds.shp
+    tiles_dsn = '/space/wib_data/LANDCOVER/tile_overview/tile_bounds'
+    if not os.path.isfile(tiles_dsn+'.idx'):
+        import Tools.SPATIAL_tools
+        Tools.SPATIAL_tools.Add_idx(tiles_dsn)
+
+
+
+
+    # Run intersections of climate, modis, ssarV1 shp, organized to regions
+    # by 30x30 MODIS tiles. Program exports everything to CSV:
+    project['paths'] =  {'climate_fn'   :climate_fn,
+                         'modis_fn'     :modis_fn,
+                         'ssarV1_dir'   : '/space/wib_data/LANDCOVER/ss_ar_shp/',
+                         'ssarV1_tiles' : tiles_dsn
+    }
+
+
+
+
     # Define blocks of 30x30 MODIS cells (cells MUST NOT repeat!!)
     # for given unique, unrepeated block (30x30) of MODIS cells:
         # which regions ('tile_id') in tile_bounds.shp intersect block
         # for those tile_id which intersect block:
             # intersect modis features, climate features, lc features
-            # export to csv
+            # export lc isect to csv
+            # export applicable modis and climate cells to csv
+    import Tools.ssarV2_functions
+    Tools.ssarV2_functions.Isect_mod_clim_ssar(project)
