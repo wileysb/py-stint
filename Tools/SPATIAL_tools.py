@@ -560,16 +560,17 @@ def Parse_extents(src_fn):
 
 
 def Mk_bbox(xmin,ymin,xmax,ymax):
+
     perim = ogr.Geometry(ogr.wkbLinearRing)
-    perim.AddPoint(xmin,ymin)
-    perim.AddPoint(xmax,ymin)
-    perim.AddPoint(xmax,ymax)
-    perim.AddPoint(xmin,ymax)
-    perim.AddPoint(xmin,ymin)
+    perim.AddPoint(float(xmin),float(ymin))
+    perim.AddPoint(float(xmax),float(ymin))
+    perim.AddPoint(float(xmax),float(ymax))
+    perim.AddPoint(float(xmin),float(ymax))
+    perim.AddPoint(float(xmin),float(ymin))
 
     bbox = ogr.Geometry(ogr.wkbPolygon)
     bbox.AddGeometry(perim)
-    
+
     return bbox
 
 
