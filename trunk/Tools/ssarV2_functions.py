@@ -5,6 +5,8 @@ import ogr
 import osr
 import math
 import csv
+import h5py
+import glob
 from rtree import index
 from SPATIAL_tools import FastRtree, Ogr_open, Mk_proj
 from ORG_tools import Countdown
@@ -19,6 +21,7 @@ utm33n.ImportFromEPSG(32633)
 utm33n_string = utm33n.ExportToWkt()
 
 sin2utm33n = osr.CoordinateTransformation(sin_srs, utm33n) #src,dst
+
 
 def Isect_mod_clim_ssar(project):
     '''Isect_mod_clim_ssar(project, project_paths)
@@ -36,6 +39,12 @@ def Isect_mod_clim_ssar(project):
             # intersect modis features, climate features, lc features
             # export lc isect to csv
             # export applicable modis and climate cells to csv'''
+
+    # get ssarV1 attributes
+    ssar_attribs = Get_lc_attribs(project)
+    ssar_hdr = ['area','modis_area','modis_id','climate_id']
+    for attrib in ssar_attribs:
+        ssar_hdr.append(attrib)
 
     # load climate bbox
     climate_params = Parse_extents(project['paths']['climate_fn'])
@@ -124,7 +133,7 @@ def Isect_mod_clim_ssar(project):
                         feat =  None
                         idVar += 1
 
-                        tile_out_fmt = os.path.join(project['csv_dir'], 'ssarV2_{0}_'+tile_id+'.csv') # .format(sds)
+                        tile_out_fmt = os.path.join(project['csv_dir'], '{0}/ssarV2_{0}_'+tile_id+'.csv') # .format(sds)
                         modis_rows_to_write = set()
                         climate_rows_to_write = set()
 
@@ -136,6 +145,12 @@ def Isect_mod_clim_ssar(project):
                         climate = project['paths']['climate_shp']# [(txmin, tymin, txmax, tymax), climate_params]
                         mod_clim_isect, modis_idVar   = Mk_mod_clim_tile(modis, climate, tile_x_ind, tile_y_ind, tile_dx, tile_dy)
                         mod_clim_isect_r = mod_clim_isect['idx']
+
+                        # open ssar csv, write header
+                        ssar_fn  = tile_out_fmt.format('lc')
+                        ssar_f   = open(ssar_fn,'wt')
+                        ssar_csv = csv.writer(ssar_f)
+                        ssar_csv.writerow(ssar_hdr)
 
                         new_tile = False
 
@@ -152,6 +167,9 @@ def Isect_mod_clim_ssar(project):
                             ssarV1_feat = ssarV1_tile_lyr.GetFeature(fid1)
                             ssar_geom = ssarV1_feat.GetGeometryRef()
                             fxmin,fxmax,fymin,fymax = ssar_geom.GetEnvelope()
+
+                            # get attribute fields
+                            ssar_row_proto = [ssarV1_feat.GetField(attrib) for attrib in ssar_attribs]
 
                             final_hits = mod_clim_isect_r.intersection((fxmin,fymin,fxmax,fymax))
                             for mod_clim_id in final_hits:
@@ -173,14 +191,16 @@ def Isect_mod_clim_ssar(project):
                                     climate_rows_to_write.add((climate_id, climate_x_ind, climate_y_ind))
                                     modis_rows_to_write.add((modis_id, modis_area, modis_ctr_x, modis_ctr_y, modis_x_ind, modis_y_ind))
 
-                                    # todo
-                                    # write ssarV1_attributes (plus area, modis_area, mod_id, climate_id) to csv
+                                    ssar_row = ssar_row_proto + [isect_area,modis_area,modis_id,climate_id]
+                                    ssar_csv.writerow(ssar_row)
 
 
-            # todo:
-            Write_modis_tile(project, modis_rows_to_write, tile_id)
-            Write_climate_tile(project, climate_rows_to_write, tile_id)
+
+            ssar_csv.close()
             # Write modis and climate datasets to CSVs, for all cells which had hits
+            Write_modis_tile(project, modis_rows_to_write, tile_out_fmt)
+            Write_climate_tile(project, climate_rows_to_write, tile_out_fmt)
+
             tile_ulx += tile_dx
             tile_x_ind+=1
         tile_uly -= tile_dy
@@ -361,38 +381,92 @@ def Mk_mod_clim_tile(modis, climate_dsn, tile_x_ind, tile_y_ind, tile_dx, tile_d
     return isect_out, modis_idVar
 
 
-def Write_modis_tile(project, modis_rows_to_write, tile_id):
-    # todo
-    todo = 'fill in the structure with code'
+def Write_modis_tile(project, modis_rows_to_write, tile_out_fmt):
     # Sort rows by id, ascending
+    modis_rows = sorted(modis_rows_to_write, key=lambda rows: rows[0])
 
     for dset in project['modis'].keys():
         for dnum in project['modis'][dset].keys():
+            sds = project['modis'][dset][dnum]
+            hdf_fn = os.path.join(project['hdf_dir'],project['prj_name']+ \
+                               '_'+sds+'.hdf5')
+
             # Create csv
+            csv_fn = tile_out_fmt.format(sds)
+            csv_f   = open(csv_fn,'wt')
+            mod_csv = csv.writer(csv_f)
 
             # Write header
+            hdr = ['modis_id', 'x_ind', 'y_ind', 'ctr_x', 'ctr_y', 'area'] + project['modis_days']
+            mod_csv.writerow(hdr)
 
             # Open hdf5
+            hdf = h5py.File(hdf_fn, 'r')
+
+            # Get offset, scale, nan
 
             # write rows:
-            for row in range(len(modis_rows_to_write)):
-                modis_series = hdf[:,y,x]
+            for row in range(len(modis_rows)):
+                modis_id, area, ctr_x, ctr_y, x_ind, y_ind = modis_rows[row]
+                modis_series = hdf[:,y_ind,x_ind]# todo offset, scale, nan
+                # apply nan
+                # apply offset, scale
+                modis_row =  [modis_id, x_ind, y_ind, ctr_x, ctr_y, area] # todo + modis_series
+                mod_csv.writerow(modis_row)
                 # write modis_rows_elements, followed by modis_series
 
+            hdf.close()
+            mod_csv.close()
 
-def Write_climate_tile(project, climate_rows_to_write, tile_id):
-    # todo
-    todo = 'fill in the structure with code'
+def Write_climate_tile(project, climate_rows_to_write, tile_out_fmt):
     # Sort rows by id, ascending
+    climate_rows = sorted(climate_rows_to_write, key=lambda rows: rows[0])
+
     climate_ds_list = ['fsw','rr','sd','swe','tam']
-    for climate_ds in climate_ds_list:
+    for sds in climate_ds_list:
         # Create csv
+        csv_fn = tile_out_fmt.format(sds)
+        csv_f   = open(csv_fn,'wt')
+        climate_csv = csv.writer(csv_f)
 
         # Write header
+        hdr = Get_climate_hdr(project)
+        climate_csv.writerow(hdr)
 
         # Open hdf5
+        hdf_fn = os.path.join(project['climate_dir'],project['prj_name']+ \
+                               '_'+sds+'.hdf5')
+        hdf = h5py.File(hdf_fn, 'r')
+
+        # Get offset, scale, nan
 
         # write rows:
-        for row in range(len(climate_rows_to_write)):
-            climate_series = hdf[:,y,x]
-            # write climate_rows_elements, followed by climate_series
+        for row in range(len(climate_rows)):
+            climate_id, x_ind, y_ind = climate_rows[row]
+            climate_series = hdf[:,y_ind,x_ind] # todo offset, scale, nan
+            climate_row = [climate_id, x_ind, y_ind] # todo + climate series
+            climate_csv.writerow(climate_row)
+
+        hdf.close()
+        climate_csv.close()
+
+
+def Get_lc_attribs(project):
+    lc_dir = project['paths']['ssarV1_dir']
+
+    proto_dsn = glob.glob(os.path.join(lc_dir, '*.shp'))[0]
+
+    proto_ds, proto_lyr = Ogr_open(proto_dsn)
+
+    layerDefinition = proto_lyr.GetLayerDefn()
+
+    attribs = []
+    for i in range(layerDefinition.GetFieldCount()):
+        attribs.append(layerDefinition.GetFieldDefn(i).GetName())
+
+    del layerDefinition, proto_lyr, proto_ds, proto_dsn
+    return attribs
+
+
+def Get_climate_hdr(project):
+    hdr = ['climate_id', 'x_ind', 'y_ind'] #todo + dates (is this a field in the hdf5s??)
