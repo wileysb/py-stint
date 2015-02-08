@@ -127,8 +127,9 @@ if __name__ == '__main__':
 
     # Run intersections of climate, modis, ssarV1 shp, organized to regions
     # by 30x30 MODIS tiles. Program exports everything to CSV:
-    project['paths'] =  {'climate_fn'   :climate_fn,
-                         'modis_fn'     :modis_fn,
+    project['paths'] =  {'climate_fn'   : climate_fn, # hdf5
+                         'climate_dsn'  : climate_shp,
+                         'modis_fn'     : modis_fn,
                          'ssarV1_dir'   : '/space/wib_data/LANDCOVER/ss_ar_shp/',
                          'ssarV1_tiles' : tiles_dsn
     }
