@@ -62,9 +62,9 @@ def Isect_mod_clim_ssar(project):
     ssarV1_r = FastRtree(project['paths']['ssarV1_tiles'])
 
     # prepare tile_bounds out
-    tiles_out = os.path.join(project['shp_dir'],'ssarV2_tiles')
+    tiles_out = os.path.join(project['shp_dir'],'ssarV2_tile_bounds')
 
-     # Define outfile as shapefile, with feature type polygon
+     # Define shapefile path for tile_bounds.shp, with feature type polygon
     driver = ogr.GetDriverByName('Esri Shapefile')
     tiles_out_ds = driver.CreateDataSource(tiles_out+'.shp')
     tiles_out_layer = tiles_out_ds.CreateLayer('',None,ogr.wkbPolygon)
@@ -79,6 +79,7 @@ def Isect_mod_clim_ssar(project):
     defn = tiles_out_layer.GetLayerDefn()
 
     idVar   = 0
+    modis_idVar = 0
     count        = 0
     count_max    = int(math.ceil((mod_ymax-mod_ymin) / tile_dy))
     # count_update = count_max * 0.05 # print progress every 5%!
@@ -131,12 +132,10 @@ def Isect_mod_clim_ssar(project):
                         # - transform to utm33
                         # - get areas
                         # generate climate features intersecting tile
-                        modis = [(tile_xmin, tile_ymin,tile_xmax,tile_ymax), mod_params]
-                        climate = [(txmin, tymin, txmax, tymax), climate_params]
-                        mod_clim_isect   = Mk_mod_clim_tile(modis, climate) # todo
-                        mod_clim_isect_r = 'rtree idx for mod_clim_isect'
-                        # each feature in mod_clim_isect should have id, geom, modis_area, modis_ & climate_id & x_ind & y_ind
-                        # mod_clim_isect_idx??
+                        modis = [(tile_xmin, tile_ymin,tile_xmax,tile_ymax), mod_params, modis_idVar]
+                        climate = project['paths']['climate_shp']# [(txmin, tymin, txmax, tymax), climate_params]
+                        mod_clim_isect, modis_idVar   = Mk_mod_clim_tile(modis, climate, tile_x_ind, tile_y_ind, tile_dx, tile_dy)
+                        mod_clim_isect_r = mod_clim_isect['idx']
 
                         new_tile = False
 
@@ -151,19 +150,36 @@ def Isect_mod_clim_ssar(project):
                         ssarV1_tile_ds, ssarV1_tile_lyr = Ogr_open(ssarV1_tile_dsn)
                         for fid1 in range(0,ssarV1_tile_lyr.GetFeatureCount()):
                             ssarV1_feat = ssarV1_tile_lyr.GetFeature(fid1)
-                            geom1 = ssarV1_feat.GetGeometryRef()
-                            fxmin,fxmax,fymin,fymax = geom1.GetEnvelope() # todo
+                            ssar_geom = ssarV1_feat.GetGeometryRef()
+                            fxmin,fxmax,fymin,fymax = ssar_geom.GetEnvelope()
 
                             final_hits = mod_clim_isect_r.intersection((fxmin,fymin,fxmax,fymax))
                             for mod_clim_id in final_hits:
-                                TODO = 'THIS:' # todo
-                                # get intersection area
-                                # write ssarV1_attributes to csv
-                                # add modis_ & climate_ id, x&y_ind, modis_area to 'out_rows' lists
+                                mod_clim_feat = mod_clim_isect['geom'][mod_clim_id]
+                                if ssar_geom.Intersects(mod_clim_feat):
+                                    isect = ssar_geom.Intersection()
+                                    isect_area = isect.GetArea()
 
-#! todo in writing CSV datasets, climate and modis_ids need to continue to increase
-#! over the whole output, not just within each tile then resetting to 0
+                                    climate_id = mod_clim_isect['climate_id'][mod_clim_id]
+                                    climate_x_ind = mod_clim_isect['climate_x_ind'][mod_clim_id]
+                                    climate_y_ind = mod_clim_isect['climate_y_ind'][mod_clim_id]
+                                    modis_id = mod_clim_isect['modis_id'][mod_clim_id]
+                                    modis_area = mod_clim_isect['modis_area'][mod_clim_id]
+                                    modis_ctr_x = mod_clim_isect['modis_ctr_x'][mod_clim_id]
+                                    modis_ctr_y = mod_clim_isect['modis_ctr_y'][mod_clim_id]
+                                    modis_x_ind = mod_clim_isect['modis_x_ind'][mod_clim_id]
+                                    modis_y_ind = mod_clim_isect['modis_y_ind'][mod_clim_id]
 
+                                    climate_rows_to_write.add((climate_id, climate_x_ind, climate_y_ind))
+                                    modis_rows_to_write.add((modis_id, modis_area, modis_ctr_x, modis_ctr_y, modis_x_ind, modis_y_ind))
+
+                                    # todo
+                                    # write ssarV1_attributes (plus area, modis_area, mod_id, climate_id) to csv
+
+
+            # todo:
+            Write_modis_tile(project, modis_rows_to_write, tile_id)
+            Write_climate_tile(project, climate_rows_to_write, tile_id)
             # Write modis and climate datasets to CSVs, for all cells which had hits
             tile_ulx += tile_dx
             tile_x_ind+=1
@@ -180,7 +196,7 @@ def Isect_mod_clim_ssar(project):
 
 
 
-def Mk_polygrid_memory(params, mk_idx=True, record_ctr_coords=True, record_area=True, transform=None):
+def Mk_polygrid_memory(params, tile_ulx_ind, tile_uly_ind, mk_idx=True, record_ctr_coords=True, record_area=True, transform=None, idVar=None):
 
     xmin = float(params['xmin'])
     xmax = float(params['xmax'])
@@ -188,7 +204,6 @@ def Mk_polygrid_memory(params, mk_idx=True, record_ctr_coords=True, record_area=
     ymax = float(params['ymax'])
     dx   = params['dx']
     dy   = params['dy']
-    outf = params['outf']
 
     boxes      = []
     x_ind_list = []
@@ -200,16 +215,16 @@ def Mk_polygrid_memory(params, mk_idx=True, record_ctr_coords=True, record_area=
         ctr_xy = []
     if record_area==True:
         arealist = []
+    if idVar != None:
+        idVar_list = []
 
-    id_list = 'implicit; idVar only needed for rtree'
-
-    idVar   = 0
+    grid_idVar   = 0
 
     y = ymax
-    y_ind = 0
+    y_ind = tile_uly_ind
     while round(y,3) > round(ymin,3):
         x = xmin
-        x_ind = 0
+        x_ind = tile_ulx_ind
         while round(x,3) < round(xmax,3):
             feat = Mk_bbox(x, y - dy, x + dx, y)
 
@@ -222,13 +237,16 @@ def Mk_polygrid_memory(params, mk_idx=True, record_ctr_coords=True, record_area=
             if record_area==True:
                 arealist.append(feat.GetArea())
             if mk_idx==True:
-                 idx.insert(idVar,(x, y - dy, x + dx, y))
+                 idx.insert(grid_idVar,(x, y - dy, x + dx, y))
             if record_ctr_coords==True:
-                # todo get ctr-x ctr-y out of Centroid
                 ctr_xy.append((feat.GetX(), feat.GetY()))
+            if idVar != None:
+                idVar_list.append(idVar)
 
             feat = geom = None
-            idVar += 1
+            grid_idVar += 1
+            if idVar != None:
+                idVar+=1
             x += dx
             x_ind+=1
         y -= dy
@@ -236,7 +254,6 @@ def Mk_polygrid_memory(params, mk_idx=True, record_ctr_coords=True, record_area=
 
     # Save and close everything
     ds = layer = feat = perim = polygon = None
-    # sys.stdout.write("\n")
     out = {}
     out['boxes'] = boxes
     out['x_ind'] = x_ind_list
@@ -247,48 +264,135 @@ def Mk_polygrid_memory(params, mk_idx=True, record_ctr_coords=True, record_area=
         out['ctr_xy'] = ctr_xy
     if record_area==True:
         out['area'] = arealist
+    if idVar != None:
+        out['idVar'] = idVar_list
 
 
-    out['other params'] = 'other_lists'
+    return out
 
 
-
-def Mk_mod_clim_tile(modis, climate ):
+def Mk_mod_clim_tile(modis, climate_dsn, tile_x_ind, tile_y_ind, tile_dx, tile_dy ):
+    # corner full-grid indices (modis)
+    mod_tile_ulx_ind = tile_x_ind*tile_dx
+    mod_tile_uly_ind = tile_y_ind*tile_dy
 
     # unpack parameters
     tile_xmin, tile_ymin, tile_xmax, tile_ymax = modis[0]
     mod_params = modis[1]
+    modis_idVar = modis[2]
 
-    txmin, tymin, txmax, tymax = climate[0] # These are utm33 projected coordinates of tile_xmin, ...
-    climate_params = climate[1]
+    modis_tile_params = {
+    'xmin' : float(tile_xmin),
+    'xmax' : float(tile_xmax),
+    'ymin' : float(tile_ymin),
+    'ymax' : float(tile_ymax),
+    'dx'   : mod_params['dx'],
+    'dy'   : mod_params['dy']
+    }
 
-    climate_xmin = float(climate_params['xmin'])
-    climate_xmax = float(climate_params['xmax'])
-    climate_ymin = float(climate_params['ymin'])
-    climate_ymax = float(climate_params['ymax'])
-    climate_dx   = climate_params['dx']
-    climate_dy   = climate_params['dy']
+    modis_tile  = Mk_polygrid_memory(modis_tile_params, mod_tile_ulx_ind, mod_tile_uly_ind, mk_idx=False, record_ctr_coords=True, record_area=True, transform=sin2utm33n, idVar=modis_idVar)
+    modis_idVar = modis_tile['idVar'][-1]
 
-    # todo assign climate xy minmax such that climate tile encloses tile min max
-    '''params interpreted like this:
-    xmin = float(params['xmin'])
-    xmax = float(params['xmax'])
-    ymin = float(params['ymin'])
-    ymax = float(params['ymax'])
-    dx   = params['dx']
-    dy   = params['dy']
-    outf = params['outf']'''
+    ## CLIMATE PARAMETERS - JUST USE CLIMATE_DSN WITH FASTRTREE IDX??? ###
+    climate_ds, climate_lyr = Ogr_open(climate_dsn)
+    climate_idx             = FastRtree(climate_dsn)
 
-    climate_tile_ = Mk_polygrid_memory(climate_tile_params, mk_idx=True, record_ctr_coords=True, record_area=False, transform=None)
+    # initiate lists for everything which will go into isect_out{}
+    idx = index.Index(interleaved=True)
+    isect_geom    = []
+    climate_id    = []
+    climate_x_ind = []
+    climate_y_ind = []
+    modis_id      = []
+    modis_area    = []
+    modis_x_ind   = []
+    modis_y_ind   = []
+    modis_ctr_x   = []
+    modis_ctr_y   = []
+
+    tile_idVar = 0
+
+    for mod_i, mod_cell in enumerate(modis_tile['boxes']):
+        mod_id = modis_tile['idVar'][mod_i]
+        mod_area = mod_cell.GetArea()
+        mod_x_ind = modis_tile['x_ind'][mod_i]
+        mod_y_ind = modis_tile['y_ind'][mod_i]
+        mod_ctr_x = modis_tile['ctr_xy'][mod_i][0]
+        mod_ctr_y = modis_tile['ctr_xy'][mod_i][1]
+        mxmin,mxmax,mymin,mymax = mod_cell.GetEnvelope()
+        climate_in_modis = climate_idx.intersection((mxmin,mymin,mxmax,mymax))
+        for climate_fid in climate_in_modis:
+            climate_feat = climate_lyr.GetFeature(climate_fid)
+            climate_cell = climate_feat.GetGeometryRef()
+            if mod_cell.Intersects(climate_cell):
+                isect = mod_cell.Intersection(climate_cell)
+                # Insert to index
+                xmin,xmax,ymin,ymax = isect.GetEnvelope()
+                idx.insert(tile_idVar,(xmin,ymin,xmax,ymax))
+
+                climate_id.append(climate_feat.GetField('id'))
+                climate_x_ind.append(climate_feat.GetField('x_ind'))
+                climate_y_ind.append(climate_feat.GetField('y_ind'))
+
+                modis_id.append(mod_id)
+                modis_area.append(mod_area)
+                modis_x_ind.append(mod_x_ind)
+                modis_y_ind.append(mod_y_ind)
+                modis_ctr_x.append(mod_ctr_x)
+                modis_ctr_y.append(mod_ctr_y)
+
+                isect_geom.append(mod_cell.Intersection)
+                tile_idVar+=1
 
 
-    mod_xmin = float(mod_params['xmin'])
-    mod_xmax = float(mod_params['xmax'])
-    mod_ymin = float(mod_params['ymin'])
-    mod_ymax = float(mod_params['ymax'])
-    mod_dx   = mod_params['dx']
-    mod_dy   = mod_params['dy']
+    isect_out = {
+    'idx'           : idx,
+    'geom'          : isect_geom,
+    'climate_id'    : climate_id,
+    'climate_x_ind' : climate_x_ind,
+    'climate_y_ind' : climate_y_ind,
+    'modis_id'      : modis_id,
+    'modis_area'    : modis_area,
+    'modis_x_ind'   : modis_x_ind,
+    'modis_y_ind'   : modis_y_ind,
+    'modis_ctr_x'   : modis_ctr_x,
+    'modis_ctr_y'   : modis_ctr_y}
 
-    modis_tile = Mk_polygrid_memory(modis_tile_params, mk_idx=False, record_ctr_coords=True, record_area=True, transform=sin2utm33n)
+    return isect_out, modis_idVar
 
-    for mod_idx, mod_cell in enumerate(modis_tile['boxes'])
+
+def Write_modis_tile(project, modis_rows_to_write, tile_id):
+    # todo
+    todo = 'fill in the structure with code'
+    # Sort rows by id, ascending
+
+    for dset in project['modis'].keys():
+        for dnum in project['modis'][dset].keys():
+            # Create csv
+
+            # Write header
+
+            # Open hdf5
+
+            # write rows:
+            for row in range(len(modis_rows_to_write)):
+                modis_series = hdf[:,y,x]
+                # write modis_rows_elements, followed by modis_series
+
+
+def Write_climate_tile(project, climate_rows_to_write, tile_id):
+    # todo
+    todo = 'fill in the structure with code'
+    # Sort rows by id, ascending
+    climate_ds_list = ['fsw','rr','sd','swe','tam']
+    for climate_ds in climate_ds_list:
+        # Create csv
+
+        # Write header
+
+        # Open hdf5
+
+        # write rows:
+        for row in range(len(climate_rows_to_write)):
+            climate_series = hdf[:,y,x]
+            # write climate_rows_elements, followed by climate_series
