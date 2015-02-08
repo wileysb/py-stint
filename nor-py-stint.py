@@ -114,7 +114,6 @@ if __name__ == '__main__':
 
 
 
-     # todo major
     ### intersections:
     # idx tile_bounds.shp
     tiles_dsn = '/space/wib_data/LANDCOVER/tile_overview/tile_bounds'
@@ -135,6 +134,7 @@ if __name__ == '__main__':
     }
 
 
+    # todo create directories for each dataset (mod, clim, lc) in CSV/
 
 
     # Define blocks of 30x30 MODIS cells (cells MUST NOT repeat!!)
