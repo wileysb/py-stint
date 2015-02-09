@@ -10,9 +10,8 @@ import glob
 import numpy as np
 import datetime as dt
 from rtree import index
-from SPATIAL_tools import FastRtree, Ogr_open, Mk_proj
+from SPATIAL_tools import FastRtree, Ogr_open, Mk_proj, Mk_bbox, Parse_extents
 from ORG_tools import Countdown
-from MODIS_aoi import Mk_bbox, Parse_extents
 
 sin_prj = 'PROJCS["unnamed",GEOGCS["Unknown datum based upon the custom spheroid",DATUM["Not specified (based on custom spheroid)",SPHEROID["Custom spheroid",6371007.181,0]],PRIMEM["Greenwich",0],UNIT["degree",0.0174532925199433]],PROJECTION["Sinusoidal"],PARAMETER["longitude_of_center",0],PARAMETER["false_easting",0],PARAMETER["false_northing",0],UNIT["Meter",1]]'
 sin_srs = osr.SpatialReference()
@@ -263,7 +262,8 @@ def Mk_polygrid_memory(params, tile_ulx_ind, tile_uly_ind, mk_idx=True, record_c
             if mk_idx==True:
                  idx.insert(grid_idVar,(x, y - dy, x + dx, y))
             if record_ctr_coords==True:
-                ctr_xy.append((feat.GetX(), feat.GetY()))
+                ctr = feat.Centroid()
+                ctr_xy.append((ctr.GetX(), ctr.GetY()))
             if idVar != None:
                 idVar_list.append(idVar)
 
