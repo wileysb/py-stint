@@ -118,7 +118,8 @@ def Isect_mod_clim_ssar(project):
             tile_bbox_utm33.Transform(sin2utm33n)
 
             txmin,txmax,tymin,tymax = tile_bbox_utm33.GetEnvelope()
-
+            modis_rows_to_write = [] # no list if no intersections
+            climate_rows_to_write = [] # no list if no intersections
             if tile_bbox_utm33.Intersects(climate_bbox):
                 hits = ssarV1_r.intersection((txmin,tymin,txmax,tymax)) # (gxmin,gymin,gxmax,gymax)
                 for hit_fid in hits:
