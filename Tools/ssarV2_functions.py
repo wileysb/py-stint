@@ -50,7 +50,7 @@ def Isect_mod_clim_ssar(project):
 
     # load climate bbox
     climate_params = Parse_extents(project['paths']['climate_fn'])
-    climate_bbox = Mk_bbox(climate_params['xmin'], climate_params['ymin'],climate_params['xmax'], climate_params['ymax'])
+    climate_bbox = Mk_bbox(float(climate_params['xmin']), float(climate_params['ymin']), float(climate_params['xmax']), float(climate_params['ymax']))
 
 
     # Define blocks of 30x30 MODIS cells (cells MUST NOT repeat!!)
