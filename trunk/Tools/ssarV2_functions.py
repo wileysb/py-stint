@@ -102,6 +102,7 @@ def Isect_mod_clim_ssar(project):
         tile_x_ind = 0
         while round(tile_ulx,3) < round(mod_xmax,3):
             new_tile = True
+            new_ssar_csv = True
 
             tile_xmin = tile_ulx
             tile_ymin = tile_uly - tile_dy
@@ -148,11 +149,7 @@ def Isect_mod_clim_ssar(project):
                         mod_clim_isect, modis_idVar   = Mk_mod_clim_tile(modis, climate, tile_x_ind, tile_y_ind, tile_dx, tile_dy)
                         mod_clim_isect_r = mod_clim_isect['idx']
 
-                        # open ssar csv, write header
-                        ssar_fn  = tile_out_fmt.format('lc')
-                        ssar_f   = open(ssar_fn,'wt')
-                        ssar_csv = csv.writer(ssar_f)
-                        ssar_csv.writerow(ssar_hdr)
+
 
                         new_tile = False
 
@@ -194,13 +191,21 @@ def Isect_mod_clim_ssar(project):
                                         climate_rows_to_write.add((climate_id, climate_x_ind, climate_y_ind))
                                         modis_rows_to_write.add((modis_id, modis_area, modis_ctr_x, modis_ctr_y, modis_x_ind, modis_y_ind))
 
+                                        if new_ssar_csv==True:
+                                            # open ssar csv, write header
+                                            ssar_fn  = tile_out_fmt.format('lc')
+                                            ssar_f   = open(ssar_fn,'wt')
+                                            ssar_csv = csv.writer(ssar_f)
+                                            ssar_csv.writerow(ssar_hdr)
+                                            new_ssar_csv = False
+
                                         ssar_row = ssar_row_proto + [isect_area,modis_area,modis_id,climate_id]
                                         ssar_csv.writerow(ssar_row)
                         else:
                             print ssarV1_tile_dsn, 'absent; moving on'
 
-
-                        ssar_f.close()
+                        if new_ssar_csv==False:
+                            ssar_f.close()
             # Write modis and climate datasets to CSVs, for all cells which had hits
             if len(modis_rows_to_write)>0:
                 Write_modis_tile(project, modis_rows_to_write, tile_out_fmt)
