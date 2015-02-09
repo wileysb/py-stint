@@ -164,38 +164,40 @@ def Isect_mod_clim_ssar(project):
 
                         # load tile'
                         ssarV1_tile_dsn = os.path.join(project['paths']['ssarV1_dir'], 'ss_ar_'+str(ssarV1_tile_id))
-                        ssarV1_tile_ds, ssarV1_tile_lyr = Ogr_open(ssarV1_tile_dsn)
-                        for fid1 in range(0,ssarV1_tile_lyr.GetFeatureCount()):
-                            ssarV1_feat = ssarV1_tile_lyr.GetFeature(fid1)
-                            ssar_geom = ssarV1_feat.GetGeometryRef()
-                            fxmin,fxmax,fymin,fymax = ssar_geom.GetEnvelope()
+                        if os.path.isfile(ssarV1_tile_dsn+'.shp'):
+                            ssarV1_tile_ds, ssarV1_tile_lyr = Ogr_open(ssarV1_tile_dsn)
+                            for fid1 in range(0,ssarV1_tile_lyr.GetFeatureCount()):
+                                ssarV1_feat = ssarV1_tile_lyr.GetFeature(fid1)
+                                ssar_geom = ssarV1_feat.GetGeometryRef()
+                                fxmin,fxmax,fymin,fymax = ssar_geom.GetEnvelope()
 
-                            # get attribute fields
-                            ssar_row_proto = [ssarV1_feat.GetField(attrib) for attrib in ssar_attribs]
+                                # get attribute fields
+                                ssar_row_proto = [ssarV1_feat.GetField(attrib) for attrib in ssar_attribs]
 
-                            final_hits = mod_clim_isect_r.intersection((fxmin,fymin,fxmax,fymax))
-                            for mod_clim_id in final_hits:
-                                mod_clim_feat = mod_clim_isect['geom'][mod_clim_id]
-                                if ssar_geom.Intersects(mod_clim_feat):
-                                    isect = ssar_geom.Intersection()
-                                    isect_area = isect.GetArea()
+                                final_hits = mod_clim_isect_r.intersection((fxmin,fymin,fxmax,fymax))
+                                for mod_clim_id in final_hits:
+                                    mod_clim_feat = mod_clim_isect['geom'][mod_clim_id]
+                                    if ssar_geom.Intersects(mod_clim_feat):
+                                        isect = ssar_geom.Intersection()
+                                        isect_area = isect.GetArea()
 
-                                    climate_id = mod_clim_isect['climate_id'][mod_clim_id]
-                                    climate_x_ind = mod_clim_isect['climate_x_ind'][mod_clim_id]
-                                    climate_y_ind = mod_clim_isect['climate_y_ind'][mod_clim_id]
-                                    modis_id = mod_clim_isect['modis_id'][mod_clim_id]
-                                    modis_area = mod_clim_isect['modis_area'][mod_clim_id]
-                                    modis_ctr_x = mod_clim_isect['modis_ctr_x'][mod_clim_id]
-                                    modis_ctr_y = mod_clim_isect['modis_ctr_y'][mod_clim_id]
-                                    modis_x_ind = mod_clim_isect['modis_x_ind'][mod_clim_id]
-                                    modis_y_ind = mod_clim_isect['modis_y_ind'][mod_clim_id]
+                                        climate_id = mod_clim_isect['climate_id'][mod_clim_id]
+                                        climate_x_ind = mod_clim_isect['climate_x_ind'][mod_clim_id]
+                                        climate_y_ind = mod_clim_isect['climate_y_ind'][mod_clim_id]
+                                        modis_id = mod_clim_isect['modis_id'][mod_clim_id]
+                                        modis_area = mod_clim_isect['modis_area'][mod_clim_id]
+                                        modis_ctr_x = mod_clim_isect['modis_ctr_x'][mod_clim_id]
+                                        modis_ctr_y = mod_clim_isect['modis_ctr_y'][mod_clim_id]
+                                        modis_x_ind = mod_clim_isect['modis_x_ind'][mod_clim_id]
+                                        modis_y_ind = mod_clim_isect['modis_y_ind'][mod_clim_id]
 
-                                    climate_rows_to_write.add((climate_id, climate_x_ind, climate_y_ind))
-                                    modis_rows_to_write.add((modis_id, modis_area, modis_ctr_x, modis_ctr_y, modis_x_ind, modis_y_ind))
+                                        climate_rows_to_write.add((climate_id, climate_x_ind, climate_y_ind))
+                                        modis_rows_to_write.add((modis_id, modis_area, modis_ctr_x, modis_ctr_y, modis_x_ind, modis_y_ind))
 
-                                    ssar_row = ssar_row_proto + [isect_area,modis_area,modis_id,climate_id]
-                                    ssar_csv.writerow(ssar_row)
-
+                                        ssar_row = ssar_row_proto + [isect_area,modis_area,modis_id,climate_id]
+                                        ssar_csv.writerow(ssar_row)
+                        else:
+                            print ssarV1_tile_dsn, 'absent; moving on'
 
 
                         ssar_csv.close()
