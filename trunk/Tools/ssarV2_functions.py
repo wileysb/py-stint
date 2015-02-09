@@ -305,8 +305,8 @@ def Mk_polygrid_memory(params, tile_ulx_ind, tile_uly_ind, mk_idx=True, record_c
 
 def Mk_mod_clim_tile(modis, climate_dsn, tile_x_ind, tile_y_ind, tile_dx, tile_dy ):
     # corner full-grid indices (modis)
-    mod_tile_ulx_ind = tile_x_ind*tile_dx
-    mod_tile_uly_ind = tile_y_ind*tile_dy
+    mod_tile_ulx_ind = tile_x_ind*30
+    mod_tile_uly_ind = tile_y_ind*30
 
     # unpack parameters
     tile_xmin, tile_ymin, tile_xmax, tile_ymax = modis[0]
