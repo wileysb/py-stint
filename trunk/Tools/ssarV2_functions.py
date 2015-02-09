@@ -79,12 +79,14 @@ def Isect_mod_clim_ssar(project):
 
     # prepare tile_bounds out
     tiles_out = os.path.join(project['shp_dir'],'ssarV2_tile_bounds')
+    Mk_proj( utm33n_string,tiles_out )
 
      # Define shapefile path for tile_bounds.shp, with feature type polygon
     driver = ogr.GetDriverByName('Esri Shapefile')
     tiles_out_ds = driver.CreateDataSource(tiles_out+'.shp')
     tiles_out_layer = tiles_out_ds.CreateLayer('',None,ogr.wkbPolygon)
     tiles_out_layer.CreateField(ogr.FieldDefn('id',ogr.OFTInteger))
+
 
     # Define text field
     field_name = ogr.FieldDefn("tile_name", ogr.OFTString)
@@ -204,7 +206,7 @@ def Isect_mod_clim_ssar(project):
                                             ssar_csv.writerow(ssar_hdr)
                                             new_ssar_csv = False
 
-                                        ssar_row = ssar_row_proto + [isect_area,modis_area,modis_id,climate_id]
+                                        ssar_row = [isect_area,modis_area,modis_id,climate_id] + ssar_row_proto
                                         ssar_csv.writerow(ssar_row)
                         else:
                             print ssarV1_tile_dsn, 'absent; moving on'
@@ -227,8 +229,7 @@ def Isect_mod_clim_ssar(project):
     # Save and close everything
     ds = layer = feat = perim = polygon = None
     progress_bar.flush()
-    prj = project['srs'].ExportToWkt()
-    Mk_proj( utm33n_string,tiles_out )
+
 
 
 def Mk_polygrid_memory(params, tile_ulx_ind, tile_uly_ind, mk_idx=True, record_ctr_coords=True, record_area=True, transform=None, idVar=None):
