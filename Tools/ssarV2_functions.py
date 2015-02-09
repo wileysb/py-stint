@@ -92,8 +92,7 @@ def Isect_mod_clim_ssar(project):
     modis_idVar = 0
     count        = 0
     count_max    = int(math.ceil((mod_ymax-mod_ymin) / tile_dy))
-    # count_update = count_max * 0.05 # print progress every 5%!
-    progress_bar = Countdown(count_max)
+    progress_bar = Countdown(count_max, update_interval=.01)
 
     tile_uly = mod_ymax
     tile_y_ind = 0
@@ -146,7 +145,7 @@ def Isect_mod_clim_ssar(project):
                         # generate climate features intersecting tile
                         modis = [(tile_xmin, tile_ymin,tile_xmax,tile_ymax), mod_params, modis_idVar]
                         climate = project['paths']['climate_dsn']# [(txmin, tymin, txmax, tymax), climate_params]
-                        mod_clim_isect, modis_idVar   = Mk_mod_clim_tile(modis, climate, tile_x_ind, tile_y_ind, tile_dx, tile_dy)
+                        mod_clim_isect, modis_idVar   = Mk_mod_clim_tile(modis, climate, tile_x_ind, tile_y_ind)
                         mod_clim_isect_r = mod_clim_isect['idx']
 
 
@@ -303,7 +302,7 @@ def Mk_polygrid_memory(params, tile_ulx_ind, tile_uly_ind, mk_idx=True, record_c
     return out
 
 
-def Mk_mod_clim_tile(modis, climate_dsn, tile_x_ind, tile_y_ind, tile_dx, tile_dy ):
+def Mk_mod_clim_tile(modis, climate_dsn, tile_x_ind, tile_y_ind):
     # corner full-grid indices (modis)
     mod_tile_ulx_ind = tile_x_ind*30
     mod_tile_uly_ind = tile_y_ind*30
@@ -423,7 +422,6 @@ def Write_modis_tile(project, modis_rows_to_write, tile_out_fmt):
             # write rows:
             for row in range(len(modis_rows)):
                 modis_id, area, ctr_x, ctr_y, x_ind, y_ind = modis_rows[row]
-                print hdf[sds].shape, ':', modis_rows[row]
                 modis_series = hdf[sds][:,y_ind,x_ind]
                 modis_row =  [modis_id, x_ind, y_ind, ctr_x, ctr_y, area]  + list(np.where(modis_series==ds_nan,np.nan,modis_series)*scale+offset)
                 mod_csv.writerow(modis_row)
