@@ -231,7 +231,6 @@ def Isect_mod_clim_ssar(project):
     progress_bar.flush()
 
 
-
 def Mk_polygrid_memory(params, tile_ulx_ind, tile_uly_ind, mk_idx=True, record_ctr_coords=True, record_area=True, transform=None, idVar=None):
 
     xmin = float(params['xmin'])
@@ -487,3 +486,80 @@ def Get_lc_attribs(project):
 
     del layerDefinition, proto_lyr, proto_ds, proto_dsn
     return attribs
+
+
+def Gen_ssarV2_tiles(project):
+
+    # Define blocks of 30x30 MODIS cells (cells MUST NOT repeat!!)
+    mod_params = Parse_extents(project['paths']['modis_fn'])
+
+    mod_xmin = float(mod_params['xmin'])
+    mod_xmax = float(mod_params['xmax'])
+    mod_ymin = float(mod_params['ymin'])
+    mod_ymax = float(mod_params['ymax'])
+    mod_dx   = mod_params['dx']
+    mod_dy   = mod_params['dy']
+    mod_prj  = mod_params['srs']
+
+    tile_dx = mod_dx * 30
+    tile_dy = mod_dy * 30
+
+    # prepare tile_bounds out
+    tiles_out = os.path.join(project['shp_dir'],'ssarV2_tile_bounds')
+    Mk_proj( utm33n_string,tiles_out )
+
+     # Define shapefile path for tile_bounds.shp, with feature type polygon
+    driver = ogr.GetDriverByName('Esri Shapefile')
+    tiles_out_ds = driver.CreateDataSource(tiles_out+'.shp')
+    tiles_out_layer = tiles_out_ds.CreateLayer('',None,ogr.wkbPolygon)
+    tiles_out_layer.CreateField(ogr.FieldDefn('id',ogr.OFTInteger))
+
+
+    # Define text field
+    field_name = ogr.FieldDefn("tile_name", ogr.OFTString)
+    field_name.SetWidth(24)
+    tiles_out_layer.CreateField(ogr.FieldDefn("tile_name", ogr.OFTString))
+
+    defn = tiles_out_layer.GetLayerDefn()
+
+    idVar   = 0
+    count        = 0
+    count_max    = int(math.ceil((mod_ymax-mod_ymin) / tile_dy))
+    progress_bar = Countdown(count_max, update_interval=.01)
+
+    tile_uly = mod_ymax
+    tile_y_ind = 0
+    while round(tile_uly,3) > round(mod_ymin,3):
+        tile_ulx = mod_xmin
+        tile_x_ind = 0
+        while round(tile_ulx,3) < round(mod_xmax,3):
+            tile_xmin = tile_ulx
+            tile_ymin = tile_uly - tile_dy
+            tile_xmax = tile_ulx + tile_dx
+            tile_ymax = tile_uly
+
+            tile_bbox_utm33 = Mk_bbox(tile_xmin, tile_ymin, tile_xmax, tile_ymax)
+            tile_bbox_utm33.Transform(sin2utm33n)
+
+            tile_id = '{0}_{1}'.format(tile_y_ind,tile_x_ind)
+
+            feat = ogr.Feature(defn)
+            feat.SetField('id',idVar)
+            feat.SetField('tile_name',tile_id)
+            feat.SetGeometry(tile_bbox_utm33)
+
+            tiles_out_layer.CreateFeature(feat)
+            feat =  None
+            idVar += 1
+
+
+            tile_ulx += tile_dx
+            tile_x_ind+=1
+        tile_uly -= tile_dy
+        tile_y_ind+=1
+        count += 1
+        progress_bar.check(count)
+
+    # Save and close everything
+    ds = layer = feat = perim = polygon = None
+    progress_bar.flush()
