@@ -7,6 +7,8 @@ import math
 import csv
 import h5py
 import glob
+import numpy as np
+import datetime as dt
 from rtree import index
 from SPATIAL_tools import FastRtree, Ogr_open, Mk_proj
 from ORG_tools import Countdown
@@ -215,7 +217,6 @@ def Isect_mod_clim_ssar(project):
     Mk_proj( utm33n_string,tiles_out )
 
 
-
 def Mk_polygrid_memory(params, tile_ulx_ind, tile_uly_ind, mk_idx=True, record_ctr_coords=True, record_area=True, transform=None, idVar=None):
 
     xmin = float(params['xmin'])
@@ -404,19 +405,20 @@ def Write_modis_tile(project, modis_rows_to_write, tile_out_fmt):
             hdf = h5py.File(hdf_fn, 'r')
 
             # Get offset, scale, nan
+            scale  = hdf[sds].attrs['scale_factor']
+            offset = hdf[sds].attrs['add_offset']
+            ds_nan = hdf[sds].attrs['fill_value']
 
             # write rows:
             for row in range(len(modis_rows)):
                 modis_id, area, ctr_x, ctr_y, x_ind, y_ind = modis_rows[row]
-                modis_series = hdf[:,y_ind,x_ind]# todo offset, scale, nan
-                # apply nan
-                # apply offset, scale
-                modis_row =  [modis_id, x_ind, y_ind, ctr_x, ctr_y, area] # todo + modis_series
+                modis_series = hdf[:,y_ind,x_ind]
+                modis_row =  [modis_id, x_ind, y_ind, ctr_x, ctr_y, area]  + list(np.where(modis_series==ds_nan,np.nan,modis_series)*scale+offset)
                 mod_csv.writerow(modis_row)
-                # write modis_rows_elements, followed by modis_series
 
             hdf.close()
             mod_csv.close()
+
 
 def Write_climate_tile(project, climate_rows_to_write, tile_out_fmt):
     # Sort rows by id, ascending
@@ -439,12 +441,15 @@ def Write_climate_tile(project, climate_rows_to_write, tile_out_fmt):
         hdf = h5py.File(hdf_fn, 'r')
 
         # Get offset, scale, nan
+        scale  = hdf[sds].attrs['scale_factor']
+        offset = hdf[sds].attrs['add_offset']
+        ds_nan = hdf[sds].attrs['fill_value']
 
         # write rows:
         for row in range(len(climate_rows)):
             climate_id, x_ind, y_ind = climate_rows[row]
-            climate_series = hdf[:,y_ind,x_ind] # todo offset, scale, nan
-            climate_row = [climate_id, x_ind, y_ind] # todo + climate series
+            climate_series = hdf[:,y_ind,x_ind]
+            climate_row = [climate_id, x_ind, y_ind]  + list(np.where(climate_series==ds_nan,np.nan,climate_series)*scale+offset)
             climate_csv.writerow(climate_row)
 
         hdf.close()
@@ -469,4 +474,9 @@ def Get_lc_attribs(project):
 
 
 def Get_climate_hdr(project):
-    hdr = ['climate_id', 'x_ind', 'y_ind'] #todo + dates (is this a field in the hdf5s??)
+    #  Get Date range from modis_days
+    start_date = dt.datetime.strptime(str(project['modis_days'][0]), '%Y%j').date()
+    end_date   = dt.datetime.strptime(str(project['modis_days'][-1]), '%Y%j').date()
+    numdays = (end_date-start_date).days + 1
+    daterange = [(start_date + dt.timedelta(days=x)).strftime('%Y%j') for x in range(0, numdays)]
+    hdr = ['climate_id', 'x_ind', 'y_ind'] + daterange

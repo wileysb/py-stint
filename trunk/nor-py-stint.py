@@ -53,6 +53,11 @@ if __name__ == '__main__':
     project['shp_dir'] = shp_dir
     project['csv_dir'] = csv_dir
 
+    # make sds out dirs:
+    datasets =  ['BSA_ancil', 'BSA_nir', 'BSA_sw', 'fsw', 'sd', 'tam BSA_band', 'BSA_quality', 'BSA_vis', 'rr', 'swe']
+    for sds in datasets:
+        prj_mkdir(os.path.join(csv_dir, sds))
+
     ### AGGREGATE NVE AND METNO CLIMATE DIRECTORIES TO HDF5, WHOLE NORWAY
     from Tools.CLIMATE_aggregator import Aggregate_climate_grids
     Aggregate_climate_grids(project)
@@ -133,8 +138,6 @@ if __name__ == '__main__':
                          'ssarV1_tiles' : tiles_dsn
     }
 
-
-    # todo create directories for each dataset (mod, clim, lc) in CSV/
 
 
     # Define blocks of 30x30 MODIS cells (cells MUST NOT repeat!!)
