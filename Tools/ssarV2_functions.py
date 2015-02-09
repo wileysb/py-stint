@@ -163,7 +163,7 @@ def Isect_mod_clim_ssar(project):
                         ssarV1_tile_id = ssarV1_tile.GetField('tile_id')
 
                         # load tile'
-                        ssarV1_tile_dsn = os.path.join(project['paths']['ssarV1_dir'], 'ss_ar_'+ssarV1_tile_id)
+                        ssarV1_tile_dsn = os.path.join(project['paths']['ssarV1_dir'], 'ss_ar_'+str(ssarV1_tile_id))
                         ssarV1_tile_ds, ssarV1_tile_lyr = Ogr_open(ssarV1_tile_dsn)
                         for fid1 in range(0,ssarV1_tile_lyr.GetFeatureCount()):
                             ssarV1_feat = ssarV1_tile_lyr.GetFeature(fid1)
