@@ -190,6 +190,7 @@ def Isect_mod_clim_ssar(project):
 
                                         climate_rows_to_write.add((climate_id, climate_x_ind, climate_y_ind))
                                         modis_rows_to_write.add((modis_id, modis_area, modis_ctr_x, modis_ctr_y, modis_x_ind, modis_y_ind))
+                                        print modis_id, modis_area, modis_ctr_x, modis_ctr_y, modis_x_ind, modis_y_ind
 
                                         if new_ssar_csv==True:
                                             # open ssar csv, write header
@@ -422,8 +423,7 @@ def Write_modis_tile(project, modis_rows_to_write, tile_out_fmt):
             # write rows:
             for row in range(len(modis_rows)):
                 modis_id, area, ctr_x, ctr_y, x_ind, y_ind = modis_rows[row]
-                print hdf[sds].shape, ':',y_ind, x_ind
-                print modis_id, area, ctr_x, ctr_y
+                print hdf[sds].shape, ':', modis_rows[row]
                 modis_series = hdf[sds][:,y_ind,x_ind]
                 modis_row =  [modis_id, x_ind, y_ind, ctr_x, ctr_y, area]  + list(np.where(modis_series==ds_nan,np.nan,modis_series)*scale+offset)
                 mod_csv.writerow(modis_row)
