@@ -54,7 +54,7 @@ if __name__ == '__main__':
     project['csv_dir'] = csv_dir
 
     # make sds out dirs:
-    datasets =  ['BSA_ancil', 'BSA_nir', 'BSA_sw', 'fsw', 'sd', 'tam BSA_band', 'BSA_quality', 'BSA_vis', 'rr', 'swe', 'lc']
+    datasets =  ['BSA_ancill', 'BSA_nir', 'BSA_sw', 'fsw', 'sd', 'tam BSA_band', 'BSA_quality', 'BSA_vis', 'rr', 'swe', 'lc']
     for sds in datasets:
         prj_mkdir(os.path.join(csv_dir, sds))
 
