@@ -145,7 +145,7 @@ def Isect_mod_clim_ssar(project):
                         # - get areas
                         # generate climate features intersecting tile
                         modis = [(tile_xmin, tile_ymin,tile_xmax,tile_ymax), mod_params, modis_idVar]
-                        climate = project['paths']['climate_shp']# [(txmin, tymin, txmax, tymax), climate_params]
+                        climate = project['paths']['climate_dsn']# [(txmin, tymin, txmax, tymax), climate_params]
                         mod_clim_isect, modis_idVar   = Mk_mod_clim_tile(modis, climate, tile_x_ind, tile_y_ind, tile_dx, tile_dy)
                         mod_clim_isect_r = mod_clim_isect['idx']
 
