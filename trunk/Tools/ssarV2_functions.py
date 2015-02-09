@@ -459,7 +459,7 @@ def Write_climate_tile(project, climate_rows_to_write, tile_out_fmt):
 def Get_lc_attribs(project):
     lc_dir = project['paths']['ssarV1_dir']
 
-    proto_dsn = glob.glob(os.path.join(lc_dir, '*.shp'))[0]
+    proto_dsn = glob.glob(os.path.join(lc_dir, '*.shp'))[0].split('.')[0]
 
     proto_ds, proto_lyr = Ogr_open(proto_dsn)
 
