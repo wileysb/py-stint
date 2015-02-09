@@ -178,7 +178,7 @@ def Isect_mod_clim_ssar(project):
                                 for mod_clim_id in final_hits:
                                     mod_clim_feat = mod_clim_isect['geom'][mod_clim_id]
                                     if ssar_geom.Intersects(mod_clim_feat):
-                                        isect = ssar_geom.Intersection()
+                                        isect = ssar_geom.Intersection(mod_clim_feat)
                                         isect_area = isect.GetArea()
 
                                         climate_id = mod_clim_isect['climate_id'][mod_clim_id]
