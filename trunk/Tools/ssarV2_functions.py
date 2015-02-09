@@ -367,7 +367,7 @@ def Mk_mod_clim_tile(modis, climate_dsn, tile_x_ind, tile_y_ind, tile_dx, tile_d
                 modis_ctr_x.append(mod_ctr_x)
                 modis_ctr_y.append(mod_ctr_y)
 
-                isect_geom.append(mod_cell.Intersection)
+                isect_geom.append(isect)
                 tile_idVar+=1
 
 
