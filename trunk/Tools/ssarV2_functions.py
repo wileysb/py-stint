@@ -23,7 +23,6 @@ utm33n_string = utm33n.ExportToWkt()
 
 sin2utm33n = osr.CoordinateTransformation(sin_srs, utm33n) #src,dst
 
-
 def Isect_mod_clim_ssar(project):
     '''Isect_mod_clim_ssar(project, project_paths)
 
@@ -46,6 +45,13 @@ def Isect_mod_clim_ssar(project):
     ssar_hdr = ['area','modis_area','modis_id','climate_id']
     for attrib in ssar_attribs:
         ssar_hdr.append(attrib)
+
+    # Make climate csv header
+    start_date = dt.datetime.strptime(str(project['modis_days'][0]), '%Y%j').date()
+    end_date   = dt.datetime.strptime(str(project['modis_days'][-1]), '%Y%j').date()
+    numdays = (end_date-start_date).days + 1
+    daterange = [(start_date + dt.timedelta(days=x)).strftime('%Y%j') for x in range(0, numdays)]
+    project['climate_hdr'] = ['climate_id', 'x_ind', 'y_ind'] + daterange
 
     # load climate bbox
     climate_params = Parse_extents(project['paths']['climate_fn'])
@@ -189,7 +195,6 @@ def Isect_mod_clim_ssar(project):
 
                                         climate_rows_to_write.add((climate_id, climate_x_ind, climate_y_ind))
                                         modis_rows_to_write.add((modis_id, modis_area, modis_ctr_x, modis_ctr_y, modis_x_ind, modis_y_ind))
-                                        print modis_id, modis_area, modis_ctr_x, modis_ctr_y, modis_x_ind, modis_y_ind
 
                                         if new_ssar_csv==True:
                                             # open ssar csv, write header
@@ -442,7 +447,7 @@ def Write_climate_tile(project, climate_rows_to_write, tile_out_fmt):
         climate_csv = csv.writer(csv_f)
 
         # Write header
-        hdr = Get_climate_hdr(project)
+        hdr = project['climate_hdr']
         climate_csv.writerow(hdr)
 
         # Open hdf5
@@ -481,12 +486,3 @@ def Get_lc_attribs(project):
 
     del layerDefinition, proto_lyr, proto_ds, proto_dsn
     return attribs
-
-
-def Get_climate_hdr(project):
-    #  Get Date range from modis_days
-    start_date = dt.datetime.strptime(str(project['modis_days'][0]), '%Y%j').date()
-    end_date   = dt.datetime.strptime(str(project['modis_days'][-1]), '%Y%j').date()
-    numdays = (end_date-start_date).days + 1
-    daterange = [(start_date + dt.timedelta(days=x)).strftime('%Y%j') for x in range(0, numdays)]
-    hdr = ['climate_id', 'x_ind', 'y_ind'] + daterange
