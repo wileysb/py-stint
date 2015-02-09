@@ -488,7 +488,7 @@ def Get_lc_attribs(project):
     return attribs
 
 
-def Gen_ssarV2_tiles(project):
+def Gen_ssarV2_tiles(project, out_dsn):
 
     # Define blocks of 30x30 MODIS cells (cells MUST NOT repeat!!)
     mod_params = Parse_extents(project['paths']['modis_fn'])
@@ -506,11 +506,11 @@ def Gen_ssarV2_tiles(project):
 
     # prepare tile_bounds out
     tiles_out = os.path.join(project['shp_dir'],'ssarV2_tile_bounds')
-    Mk_proj( utm33n_string,tiles_out )
+    Mk_proj( utm33n_string,out_dsn )
 
      # Define shapefile path for tile_bounds.shp, with feature type polygon
     driver = ogr.GetDriverByName('Esri Shapefile')
-    tiles_out_ds = driver.CreateDataSource(tiles_out+'.shp')
+    tiles_out_ds = driver.CreateDataSource(out_dsn+'.shp')
     tiles_out_layer = tiles_out_ds.CreateLayer('',None,ogr.wkbPolygon)
     tiles_out_layer.CreateField(ogr.FieldDefn('id',ogr.OFTInteger))
 
