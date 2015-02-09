@@ -200,7 +200,7 @@ def Isect_mod_clim_ssar(project):
                             print ssarV1_tile_dsn, 'absent; moving on'
 
 
-                        ssar_csv.close()
+                        ssar_f.close()
             # Write modis and climate datasets to CSVs, for all cells which had hits
             if len(modis_rows_to_write)>0:
                 Write_modis_tile(project, modis_rows_to_write, tile_out_fmt)
@@ -422,7 +422,7 @@ def Write_modis_tile(project, modis_rows_to_write, tile_out_fmt):
                 mod_csv.writerow(modis_row)
 
             hdf.close()
-            mod_csv.close()
+            csv_f.close()
 
 
 def Write_climate_tile(project, climate_rows_to_write, tile_out_fmt):
@@ -458,7 +458,7 @@ def Write_climate_tile(project, climate_rows_to_write, tile_out_fmt):
             climate_csv.writerow(climate_row)
 
         hdf.close()
-        climate_csv.close()
+        csv_f.close()
 
 
 def Get_lc_attribs(project):
