@@ -204,8 +204,8 @@ def Isect_mod_clim_ssar(project):
                         else:
                             print ssarV1_tile_dsn, 'absent; moving on'
 
-                        if new_ssar_csv==False:
-                            ssar_f.close()
+            if new_ssar_csv==False:
+                ssar_f.close()
             # Write modis and climate datasets to CSVs, for all cells which had hits
             if len(modis_rows_to_write)>0:
                 Write_modis_tile(project, modis_rows_to_write, tile_out_fmt)
