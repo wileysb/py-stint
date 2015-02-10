@@ -576,10 +576,9 @@ def Gen_ssarV2_tiles(project, out_dsn):
 
 
 def Mk_modis_nanmask(project):
-    sds = 'BSA_vis'
+    sds = 'BSA_nir'
     fn = hdf_fn = os.path.join(project['hdf_dir'], project['prj_name']+'_'+sds+'.hdf5')
     hdf = h5py.File(fn,'r')
-    sds = 'BSA_nir'
     nanval = hdf[sds].attrs['fill_value']
     i = 18
 
