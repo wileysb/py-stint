@@ -279,6 +279,7 @@ def Mk_polygrid_memory(params, tile_ulx_ind, tile_uly_ind, mk_idx=True, record_c
             if record_ctr_coords==True:
                 ctr = feat.Centroid()
                 ctr_xy.append((ctr.GetX(), ctr.GetY()))
+                del ctr
             if idVar != None:
                 idVar_list.append(idVar)
 
@@ -396,6 +397,8 @@ def Mk_mod_clim_tile(modis, climate_dsn, tile_x_ind, tile_y_ind):
     'modis_y_ind'   : modis_y_ind,
     'modis_ctr_x'   : modis_ctr_x,
     'modis_ctr_y'   : modis_ctr_y}
+
+    del climate_ds, climate_lyr, climate_feat, climate_cell
 
     return isect_out, modis_idVar
 
