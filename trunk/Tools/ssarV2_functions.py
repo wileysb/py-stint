@@ -72,6 +72,8 @@ def Isect_mod_clim_ssar(project):
     tile_dx = mod_dx * 30
     tile_dy = mod_dy * 30
 
+    # Make a mask for MODIS cells which are worth processing (contain any non-nan values from a cloud-free image)
+    modis_nanmask = Mk_modis_nanmask(project)
 
     # load ssarV1 tile bounds
     ssarV1_ds, ssarV1_lyr  = Ogr_open(project['paths']['ssarV1_tiles'])
@@ -108,116 +110,117 @@ def Isect_mod_clim_ssar(project):
         tile_ulx = mod_xmin
         tile_x_ind = 0
         while round(tile_ulx,3) < round(mod_xmax,3):
-            new_tile = True
-            new_ssar_csv = True
+            if modis_nanmask[tile_y_ind,tile_x_ind]:
+                new_tile = True
+                new_ssar_csv = True
 
-            tile_xmin = tile_ulx
-            tile_ymin = tile_uly - tile_dy
-            tile_xmax = tile_ulx + tile_dx
-            tile_ymax = tile_uly
+                tile_xmin = tile_ulx
+                tile_ymin = tile_uly - tile_dy
+                tile_xmax = tile_ulx + tile_dx
+                tile_ymax = tile_uly
 
-            # if creating from scratch:
-            # tile_y_ind = 83; tile_x_ind = 34
-            #tile_ymin = tile_uly - tile_y_ind*tile_dy
-            #tile_xmax = tile_ulx + tile_x_ind*tile_dx
+                # if creating from scratch:
+                # tile_y_ind = 83; tile_x_ind = 34
+                #tile_ymin = tile_uly - tile_y_ind*tile_dy
+                #tile_xmax = tile_ulx + tile_x_ind*tile_dx
 
-            tile_bbox_utm33 = Mk_bbox(tile_xmin, tile_ymin, tile_xmax, tile_ymax)
-            tile_bbox_utm33.Transform(sin2utm33n)
+                tile_bbox_utm33 = Mk_bbox(tile_xmin, tile_ymin, tile_xmax, tile_ymax)
+                tile_bbox_utm33.Transform(sin2utm33n)
 
-            txmin,txmax,tymin,tymax = tile_bbox_utm33.GetEnvelope()
-            modis_rows_to_write = [] # no list if no intersections
-            climate_rows_to_write = [] # no list if no intersections
-            if tile_bbox_utm33.Intersects(climate_bbox):
-                hits = ssarV1_r.intersection((txmin,tymin,txmax,tymax)) # (gxmin,gymin,gxmax,gymax)
-                for hit_fid in hits:
-                    if new_tile == True:
-                        tile_id = '{0}_{1}'.format(tile_y_ind,tile_x_ind)
+                txmin,txmax,tymin,tymax = tile_bbox_utm33.GetEnvelope()
+                modis_rows_to_write = [] # no list if no intersections
+                climate_rows_to_write = [] # no list if no intersections
+                if tile_bbox_utm33.Intersects(climate_bbox):
+                    hits = ssarV1_r.intersection((txmin,tymin,txmax,tymax)) # (gxmin,gymin,gxmax,gymax)
+                    for hit_fid in hits:
+                        if new_tile == True:
+                            tile_id = '{0}_{1}'.format(tile_y_ind,tile_x_ind)
 
-                        # check for intersection with climate
-                        feat = ogr.Feature(defn)
-                        feat.SetField('id',idVar)
-                        feat.SetField('tile_name',tile_id)
-                        feat.SetGeometry(tile_bbox_utm33)
+                            # check for intersection with climate
+                            feat = ogr.Feature(defn)
+                            feat.SetField('id',idVar)
+                            feat.SetField('tile_name',tile_id)
+                            feat.SetGeometry(tile_bbox_utm33)
 
-                        tiles_out_layer.CreateFeature(feat)
-                        feat =  None
-                        idVar += 1
+                            tiles_out_layer.CreateFeature(feat)
+                            feat =  None
+                            idVar += 1
 
-                        tile_out_fmt = os.path.join(project['csv_dir'], '{0}/ssarV2_{0}_'+tile_id+'.csv') # .format(sds)
-                        modis_rows_to_write = set()
-                        climate_rows_to_write = set()
+                            tile_out_fmt = os.path.join(project['csv_dir'], '{0}/ssarV2_{0}_'+tile_id+'.csv') # .format(sds)
+                            modis_rows_to_write = set()
+                            climate_rows_to_write = set()
 
-                        # generate modis features in tile
-                        # - transform to utm33
-                        # - get areas
-                        # generate climate features intersecting tile
-                        modis = [(tile_xmin, tile_ymin,tile_xmax,tile_ymax), mod_params, modis_idVar]
-                        climate = project['paths']['climate_dsn']# [(txmin, tymin, txmax, tymax), climate_params]
-                        mod_clim_isect, modis_idVar   = Mk_mod_clim_tile(modis, climate, tile_x_ind, tile_y_ind)
-                        mod_clim_isect_r = mod_clim_isect['idx']
-
-
-
-                        new_tile = False
+                            # generate modis features in tile
+                            # - transform to utm33
+                            # - get areas
+                            # generate climate features intersecting tile
+                            modis = [(tile_xmin, tile_ymin,tile_xmax,tile_ymax), mod_params, modis_idVar]
+                            climate = project['paths']['climate_dsn']# [(txmin, tymin, txmax, tymax), climate_params]
+                            mod_clim_isect, modis_idVar   = Mk_mod_clim_tile(modis, climate, tile_x_ind, tile_y_ind)
+                            mod_clim_isect_r = mod_clim_isect['idx']
 
 
-                    ssarV1_tile = ssarV1_lyr.GetFeature(hit_fid)
-                    geom2 = ssarV1_tile.GetGeometryRef()
-                    if tile_bbox_utm33.Intersects(geom2):
-                        ssarV1_tile_id = ssarV1_tile.GetField('tile_id')
 
-                        # load tile'
-                        ssarV1_tile_dsn = os.path.join(project['paths']['ssarV1_dir'], 'ss_ar_'+str(ssarV1_tile_id))
-                        if os.path.isfile(ssarV1_tile_dsn+'.shp'):
-                            ssarV1_tile_ds, ssarV1_tile_lyr = Ogr_open(ssarV1_tile_dsn)
-                            for fid1 in range(0,ssarV1_tile_lyr.GetFeatureCount()):
-                                ssarV1_feat = ssarV1_tile_lyr.GetFeature(fid1)
-                                ssar_geom = ssarV1_feat.GetGeometryRef()
-                                fxmin,fxmax,fymin,fymax = ssar_geom.GetEnvelope()
+                            new_tile = False
 
-                                # get attribute fields
-                                ssar_row_proto = [ssarV1_feat.GetField(attrib) for attrib in ssar_attribs]
 
-                                final_hits = mod_clim_isect_r.intersection((fxmin,fymin,fxmax,fymax))
-                                for mod_clim_id in final_hits:
-                                    mod_clim_feat = mod_clim_isect['geom'][mod_clim_id]
-                                    if ssar_geom.Intersects(mod_clim_feat):
-                                        isect = ssar_geom.Intersection(mod_clim_feat)
-                                        isect_area = isect.GetArea()
+                        ssarV1_tile = ssarV1_lyr.GetFeature(hit_fid)
+                        geom2 = ssarV1_tile.GetGeometryRef()
+                        if tile_bbox_utm33.Intersects(geom2):
+                            ssarV1_tile_id = ssarV1_tile.GetField('tile_id')
 
-                                        climate_id = mod_clim_isect['climate_id'][mod_clim_id]
-                                        climate_x_ind = mod_clim_isect['climate_x_ind'][mod_clim_id]
-                                        climate_y_ind = mod_clim_isect['climate_y_ind'][mod_clim_id]
-                                        modis_id = mod_clim_isect['modis_id'][mod_clim_id]
-                                        modis_area = mod_clim_isect['modis_area'][mod_clim_id]
-                                        modis_ctr_x = mod_clim_isect['modis_ctr_x'][mod_clim_id]
-                                        modis_ctr_y = mod_clim_isect['modis_ctr_y'][mod_clim_id]
-                                        modis_x_ind = mod_clim_isect['modis_x_ind'][mod_clim_id]
-                                        modis_y_ind = mod_clim_isect['modis_y_ind'][mod_clim_id]
+                            # load tile'
+                            ssarV1_tile_dsn = os.path.join(project['paths']['ssarV1_dir'], 'ss_ar_'+str(ssarV1_tile_id))
+                            if os.path.isfile(ssarV1_tile_dsn+'.shp'):
+                                ssarV1_tile_ds, ssarV1_tile_lyr = Ogr_open(ssarV1_tile_dsn)
+                                for fid1 in range(0,ssarV1_tile_lyr.GetFeatureCount()):
+                                    ssarV1_feat = ssarV1_tile_lyr.GetFeature(fid1)
+                                    ssar_geom = ssarV1_feat.GetGeometryRef()
+                                    fxmin,fxmax,fymin,fymax = ssar_geom.GetEnvelope()
 
-                                        climate_rows_to_write.add((climate_id, climate_x_ind, climate_y_ind))
-                                        modis_rows_to_write.add((modis_id, modis_area, modis_ctr_x, modis_ctr_y, modis_x_ind, modis_y_ind))
+                                    # get attribute fields
+                                    ssar_row_proto = [ssarV1_feat.GetField(attrib) for attrib in ssar_attribs]
 
-                                        if new_ssar_csv==True:
-                                            # open ssar csv, write header
-                                            ssar_fn  = tile_out_fmt.format('lc')
-                                            ssar_f   = open(ssar_fn,'wt')
-                                            ssar_csv = csv.writer(ssar_f)
-                                            ssar_csv.writerow(ssar_hdr)
-                                            new_ssar_csv = False
+                                    final_hits = mod_clim_isect_r.intersection((fxmin,fymin,fxmax,fymax))
+                                    for mod_clim_id in final_hits:
+                                        mod_clim_feat = mod_clim_isect['geom'][mod_clim_id]
+                                        if ssar_geom.Intersects(mod_clim_feat):
+                                            isect = ssar_geom.Intersection(mod_clim_feat)
+                                            isect_area = isect.GetArea()
 
-                                        ssar_row = [isect_area,modis_area,modis_id,climate_id] + ssar_row_proto
-                                        ssar_csv.writerow(ssar_row)
-                        else:
-                            print ssarV1_tile_dsn, 'absent; moving on'
+                                            climate_id = mod_clim_isect['climate_id'][mod_clim_id]
+                                            climate_x_ind = mod_clim_isect['climate_x_ind'][mod_clim_id]
+                                            climate_y_ind = mod_clim_isect['climate_y_ind'][mod_clim_id]
+                                            modis_id = mod_clim_isect['modis_id'][mod_clim_id]
+                                            modis_area = mod_clim_isect['modis_area'][mod_clim_id]
+                                            modis_ctr_x = mod_clim_isect['modis_ctr_x'][mod_clim_id]
+                                            modis_ctr_y = mod_clim_isect['modis_ctr_y'][mod_clim_id]
+                                            modis_x_ind = mod_clim_isect['modis_x_ind'][mod_clim_id]
+                                            modis_y_ind = mod_clim_isect['modis_y_ind'][mod_clim_id]
 
-            if new_ssar_csv==False:
-                ssar_f.close()
-            # Write modis and climate datasets to CSVs, for all cells which had hits
-            if len(modis_rows_to_write)>0:
-                Write_modis_tile(project, modis_rows_to_write, tile_out_fmt)
-            if len(climate_rows_to_write)>0:
-                Write_climate_tile(project, climate_rows_to_write, tile_out_fmt)
+                                            climate_rows_to_write.add((climate_id, climate_x_ind, climate_y_ind))
+                                            modis_rows_to_write.add((modis_id, modis_area, modis_ctr_x, modis_ctr_y, modis_x_ind, modis_y_ind))
+
+                                            if new_ssar_csv==True:
+                                                # open ssar csv, write header
+                                                ssar_fn  = tile_out_fmt.format('lc')
+                                                ssar_f   = open(ssar_fn,'wt')
+                                                ssar_csv = csv.writer(ssar_f)
+                                                ssar_csv.writerow(ssar_hdr)
+                                                new_ssar_csv = False
+
+                                            ssar_row = [isect_area,modis_area,modis_id,climate_id] + ssar_row_proto
+                                            ssar_csv.writerow(ssar_row)
+                            else:
+                                print ssarV1_tile_dsn, 'absent; moving on'
+
+                if new_ssar_csv==False:
+                    ssar_f.close()
+                # Write modis and climate datasets to CSVs, for all cells which had hits
+                if len(modis_rows_to_write)>0:
+                    Write_modis_tile(project, modis_rows_to_write, tile_out_fmt)
+                if len(climate_rows_to_write)>0:
+                    Write_climate_tile(project, climate_rows_to_write, tile_out_fmt)
 
             tile_ulx += tile_dx
             tile_x_ind+=1
@@ -485,6 +488,10 @@ def Get_lc_attribs(project):
         attribs.append(layerDefinition.GetFieldDefn(i).GetName())
 
     del layerDefinition, proto_lyr, proto_ds, proto_dsn
+
+    attribs_to_omit = ['cell_id', 'feature_id', 'ctr_x_cell', 'ctr_y_cell', 'ctr_x_poly', 'ctr_y_poly', 'area_m2']
+    for attr in attribs_to_omit:
+        attribs.remove(attr)
     return attribs
 
 
@@ -563,3 +570,40 @@ def Gen_ssarV2_tiles(project, out_dsn):
     # Save and close everything
     ds = layer = feat = perim = polygon = None
     progress_bar.flush()
+
+
+def Mk_modis_nanmask(project):
+    sds = 'BSA_vis'
+    fn = hdf_fn = os.path.join(project['hdf_dir'], project['prj_name']+'_'+sds+'.hdf5')
+    hdf = h5py.File(fn,'r')
+    sds = 'BSA_nir'
+    nanval = hdf[sds].attrs['fill_value']
+    i = 18
+
+    scene = hdf[sds][i,:,:]
+    scene = np.where(scene==nanval,np.nan,scene)
+
+    ylen, xlen = scene.shape
+
+    mask = np.ones((110, 109))
+
+    tx = ty = 30
+
+    for yi in range(110):
+        for xi in range(109):
+            sx = tx * xi
+            sy = ty * yi
+
+            ex = tx * (xi+1)
+            ey = ty * (yi+1)
+
+            if ex>xlen:
+                ex=xlen
+            if ey>ylen:
+                ey=ylen
+
+            num_not_nan = np.count_nonzero(~np.isnan(scene[sy:ey,sx:ex]))
+            if num_not_nan==0:
+                mask[yi,xi]=0
+
+    return mask
