@@ -98,8 +98,9 @@ if __name__ == '__main__':
                                        pre + 'modis' )
     mod_params         = Parse_extents( modis_fn )
     mod_params['outf'] = modis_shp
-    print 'Creating '+pre+'modis.shp from '+modis_fn
+
     if not os.path.isfile(modis_shp+'.shp'):
+        print 'Creating '+pre+'modis.shp from '+modis_fn
         Tools.SPATIAL_tools.Mk_polygrid( mod_params )
 
     ### REPROJECT + IDX MODIS shapefile grid
@@ -113,8 +114,9 @@ if __name__ == '__main__':
                  'dst_srs':project['srs'],
                  'fields':['ctr_x','ctr_y','x_ind','y_ind']}
     mod_reprj['area'] = True
-    print 'Reprojecting '+pre+'modis.shp to project reference system and creating rtree index'
+
     if not os.path.isfile(mod_tx+'.shp'):
+        print 'Reprojecting '+pre+'modis.shp to project reference system and creating rtree index'
         Tools.SPATIAL_tools.Reprj_and_idx( **mod_reprj)
 
 
