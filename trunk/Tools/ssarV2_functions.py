@@ -633,7 +633,9 @@ def Check_tile(tile_id, csv_fmt='/home/wiley/wrk/ntnu/ssarV2/CSV/{0}/ssarV2_{0}_
         mod_area = matches['mod_area'][0]
         area_diff.append(mod_area - feat_sum)
 
-    ds_diff['area'] = np.max(np.abs(np.array(area_diff)))<tolerance
+    ds_diff['area'] = np.max(np.abs(np.array(area_diff)))<tolerance # count vals outside tolerance
+    if not ds_diff['area']:
+        ds_diff['count'] = (np.abs(np.array(area_diff))>tolerance).sum()
 
 
     modis_datasets   =  ['BSA_ancill', 'BSA_nir', 'BSA_sw', 'BSA_band', 'BSA_quality', 'BSA_vis']
@@ -651,8 +653,12 @@ def Check_tile(tile_id, csv_fmt='/home/wiley/wrk/ntnu/ssarV2/CSV/{0}/ssarV2_{0}_
 
     return ds_diff
 
-def Check_output(csv_dir):
-    problems = [[],[]]
+def Check_output(csv_dir, tolerance=1):
+    '''missing_files, data_mismatch = Check_output(csv_dir)
+
+    '''
+    missing_files = []
+    data_mismatch = {}
 
     csv_format = os.path.join(csv_dir, '{0}/ssarV2_{0}_{1}.csv')
 
@@ -666,10 +672,14 @@ def Check_output(csv_dir):
         for dset in dsets:
             all_files = all_files * os.path.isfile(csv_format.format(dset, tile_id))
         if all_files:
-            ds_diff = Check_tile(tile_id, csv_fmt=csv_format)
+            ds_diff = Check_tile(tile_id, csv_fmt=csv_format, tolerance=tolerance)
             if False in ds_diff.values():
-                problems[-1].append(tile_id)
+                data_mismatch[tile_id] = ds_diff
         else:
-            problems[0].append(tile_id)
+            missing_files.append(tile_id)
 
-    return problems
+
+    print 'missing files in {} tiles'.format(len(missing_files))
+    print 'data mismatch in {} tiles'.format(len(data_mismatch))
+
+    return missing_files, data_mismatch
