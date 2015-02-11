@@ -151,3 +151,4 @@ if __name__ == '__main__':
             # export applicable modis and climate cells to csv
     import Tools.ssarV2_functions
     Tools.ssarV2_functions.Isect_mod_clim_ssar(project)
+    Tools.ssarV2_functions.Check_output(project['csv_dir'])
