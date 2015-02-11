@@ -686,9 +686,8 @@ def Check_output(csv_dir, tolerance=1):
         else:
             missing_files.append(tile_id)
 
-    count_fmt = '{0}/{1} modis cells not completely filled by landcover'
+    count_fmt = '{0}/{1} modis cells (in {2} tiles) not completely filled by landcover'
     print 'missing files in {} tiles'.format(len(missing_files))
-    print 'data mismatch in {} tiles'.format(len(data_mismatch))
-    print count_fmt.format(cells_missing_features, total_modis_cells)
+    print count_fmt.format(cells_missing_features, total_modis_cells, len(data_mismatch))
 
     return missing_files, data_mismatch
