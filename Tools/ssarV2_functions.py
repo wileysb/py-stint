@@ -633,9 +633,9 @@ def Check_tile(tile_id, csv_fmt='/home/wiley/wrk/ntnu/ssarV2/CSV/{0}/ssarV2_{0}_
         mod_area = matches['mod_area'][0]
         area_diff.append(mod_area - feat_sum)
 
-    ds_diff['area'] = np.max(np.abs(np.array(area_diff)))<tolerance # count vals outside tolerance
+    ds_diff['area'] = np.max(np.abs(np.array(area_diff)))<tolerance
     if not ds_diff['area']:
-        ds_diff['count'] = (np.abs(np.array(area_diff))>tolerance).sum()
+        ds_diff['count'] = (np.abs(np.array(area_diff))>tolerance).sum() # count vals outside tolerance
 
 
     modis_datasets   =  ['BSA_ancill', 'BSA_nir', 'BSA_sw', 'BSA_band', 'BSA_quality', 'BSA_vis']
@@ -651,7 +651,7 @@ def Check_tile(tile_id, csv_fmt='/home/wiley/wrk/ntnu/ssarV2/CSV/{0}/ssarV2_{0}_
         modis_id = np.loadtxt(ds_csv, delimiter=',', skiprows=1, usecols=[0,])
         ds_diff[ds] = (modis_id==mod_ids).all()
 
-    return ds_diff
+    return ds_diff, len(mod_ids)
 
 def Check_output(csv_dir, tolerance=1):
     '''missing_files, data_mismatch = Check_output(csv_dir)
@@ -663,23 +663,32 @@ def Check_output(csv_dir, tolerance=1):
     csv_format = os.path.join(csv_dir, '{0}/ssarV2_{0}_{1}.csv')
 
     tiles = glob.glob(os.path.join(csv_dir, 'lc/*.csv'))
+    tile_ids = ['_'.join(tile.split('.')[0].split('_')[-2:]) for tile in tiles]
+    rows_cols = sorted([tile_id.split('_') for tile_id in tile_ids], key=lambda rows: rows[0])
+    tile_ids = ['_'.join(row_col) for row_col in rows_cols]
 
     dsets = ['BSA_ancill', 'BSA_nir', 'BSA_sw', 'BSA_band', 'BSA_quality', 'BSA_vis', 'fsw', 'sd', 'tam', 'rr', 'swe']
 
-    for tile in tiles:
+    cells_missing_features = 0
+    total_modis_cells      = 0
+
+    for tile_id in tile_ids:
         all_files = True
-        tile_id = '_'.join(tile.split('.')[0].split('_')[-2:])
         for dset in dsets:
             all_files = all_files * os.path.isfile(csv_format.format(dset, tile_id))
         if all_files:
-            ds_diff = Check_tile(tile_id, csv_fmt=csv_format, tolerance=tolerance)
+            ds_diff, num_mod_cells = Check_tile(tile_id, csv_fmt=csv_format, tolerance=tolerance)
+            total_modis_cells+=num_mod_cells
             if False in ds_diff.values():
                 data_mismatch[tile_id] = ds_diff
+                if 'count' in ds_diff.keys():
+                    cells_missing_features+=ds_diff['count']
         else:
             missing_files.append(tile_id)
 
-
+    count_fmt = '{0}/{1} modis cells not completely filled by climate or landcover'
     print 'missing files in {} tiles'.format(len(missing_files))
     print 'data mismatch in {} tiles'.format(len(data_mismatch))
+    print count_fmt.format(cells_missing_features, total_modis_cells)
 
     return missing_files, data_mismatch
