@@ -609,3 +609,67 @@ def Mk_modis_nanmask(project):
                 mask[yi,xi]=0
 
     return mask
+
+
+def Check_tile(tile_id, csv_fmt='/home/wiley/wrk/ntnu/ssarV2/CSV/{0}/ssarV2_{0}_{1}.csv', tolerance=1):
+
+    lc_fn = csv_fmt.format('lc',tile_id)
+
+    dtypes = {'names': ('feat_area', 'mod_area', 'mod_id', 'climate_id'),
+             'formats': ('float',    'float',    'int',    'int')}
+
+    lc_tile = np.loadtxt(lc_fn, delimiter=',', skiprows=1, usecols=[0,1,2,3], dtype=dtypes)
+
+    mod_ids = np.unique(lc_tile['mod_id'])
+    climate_ids = np.unique(lc_tile['climate_id'])
+
+    ds_diff   = {}
+    area_diff = []
+
+    for mod_id in mod_ids:
+        where_id = np.where(lc_tile['mod_id']==mod_id)
+        matches = lc_tile[where_id]
+        feat_sum = np.sum(matches['feat_area'])
+        mod_area = matches['mod_area'][0]
+        area_diff.append(mod_area - feat_sum)
+
+    ds_diff['area'] = np.max(np.abs(np.array(area_diff)))<tolerance
+
+
+    modis_datasets   =  ['BSA_ancill', 'BSA_nir', 'BSA_sw', 'BSA_band', 'BSA_quality', 'BSA_vis']
+    climate_datasets =  ['fsw', 'sd', 'tam', 'rr', 'swe',]
+
+    for ds in climate_datasets:
+        ds_csv = csv_fmt.format(ds, tile_id)
+        climate_id = np.loadtxt(ds_csv, delimiter=',', skiprows=1, usecols=[0,])
+        ds_diff[ds] = (climate_id==climate_ids).all()
+
+    for ds in modis_datasets:
+        ds_csv = csv_fmt.format(ds, tile_id)
+        modis_id = np.loadtxt(ds_csv, delimiter=',', skiprows=1, usecols=[0,])
+        ds_diff[ds] = (modis_id==mod_ids).all()
+
+    return ds_diff
+
+def Check_output(csv_dir):
+    problems = [[],[]]
+
+    csv_format = os.path.join(csv_dir, '{0}/ssarV2_{0}_{1}.csv')
+
+    tiles = glob.glob(os.path.join(csv_dir, 'lc/*.csv'))
+
+    dsets = ['BSA_ancill', 'BSA_nir', 'BSA_sw', 'BSA_band', 'BSA_quality', 'BSA_vis', 'fsw', 'sd', 'tam', 'rr', 'swe']
+
+    for tile in tiles:
+        all_files = True
+        tile_id = '_'.join(tile.split('.')[0].split('_')[-2:])
+        for dset in dsets:
+            all_files = all_files * os.path.isfile(csv_format.format(dset, tile_id))
+        if all_files:
+            ds_diff = Check_tile(tile_id, csv_fmt=csv_format)
+            if False in ds_diff.values():
+                problems[-1].append(tile_id)
+        else:
+            problems[0].append(tile_id)
+
+    return problems
