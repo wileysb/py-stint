@@ -1,6 +1,7 @@
 import os
 import sys
 import osr
+import glob
 import Tools.SPATIAL_tools
 from Tools.ORG_tools import Parse_input,Get_modis_days
 from Tools.MODIS_aoi import Parse_extents, Check_mod_tiles
@@ -150,7 +151,7 @@ if __name__ == '__main__':
             # export lc isect to csv
             # export applicable modis and climate cells to csv
     import Tools.ssarV2_functions
-    if not os.path.isfile(os.path.join(project['shp_dir'],'ssarV2_tile_bounds')+'.shp'):
+    if len(glob.glob(os.path.join(project['csv_dir'], 'lc/*.csv')))==0:
         Tools.ssarV2_functions.Isect_mod_clim_ssar(project)
     else:
         Tools.ssarV2_functions.Restart_isect(project)
