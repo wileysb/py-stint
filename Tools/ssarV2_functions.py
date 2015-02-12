@@ -89,7 +89,7 @@ def Isect_mod_clim_ssar(project):
 
 
     idVar = 0
-    count_max    = 3500
+    count_max    = modis_nanmask.sum()
     progress_bar = Countdown(count_max, update_interval=.01)
 
     tile_uly = mod_ymax
@@ -99,6 +99,7 @@ def Isect_mod_clim_ssar(project):
         tile_x_ind = 0
         while round(tile_ulx,3) < round(mod_xmax,3):
             if modis_nanmask[tile_y_ind,tile_x_ind]:
+                idVar += 1
                 new_tile = True
                 new_ssar_csv = True
 
@@ -123,10 +124,6 @@ def Isect_mod_clim_ssar(project):
                     for hit_fid in hits:
                         if new_tile == True:
                             tile_id = '{0}_{1}'.format(tile_y_ind,tile_x_ind)
-
-                            # check for intersection with climate
-                            feat =  None
-                            idVar += 1
 
                             tile_out_fmt = os.path.join(project['csv_dir'], '{0}/ssarV2_{0}_'+tile_id+'.csv') # .format(sds)
                             modis_rows_to_write = set()
