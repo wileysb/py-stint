@@ -707,10 +707,6 @@ def Restart_isect(project):
     csv_format = os.path.join(project['csv_dir'], '{0}/ssarV2_{0}_{1}.csv')
     dsets = ['BSA_ancill', 'BSA_nir', 'BSA_sw', 'BSA_band', 'BSA_quality', 'BSA_vis', 'fsw', 'sd', 'tam', 'rr', 'swe', 'lc']
 
-    tile_dsn = os.path.join(project['shp_dir'],'ssarV2_tile_bounds')
-
-    tiles_out_ds = ogr.Open(tile_dsn+'.shp', 1)
-    tiles_out_layer = tiles_out_ds.GetLayer(0)
 
     # Find last tile completed
     tiles = glob.glob(os.path.join(project['csv_dir'], 'lc/*.csv'))
@@ -737,12 +733,11 @@ def Restart_isect(project):
             os.remove(csv_format.format(ds,last_tile_id))
 
     print 'Removing tile bounds'
-    last_fid = tiles_out_layer.GetFeatureCount()-1
-    last_feat = tiles_out_layer.GetFeature(last_fid)
-    last_feat_tile_id = last_feat.GetField('tile_id')
-    if last_feat_tile_id==last_tile_id: # else this tile
-        del last_feat
-        tiles_out_layer.DeleteFeature(last_fid)
+
+    tile_dsn = os.path.join(project['shp_dir'],'ssarV2_tile_bounds')
+
+    if os.path.isfile(tile_dsn + '.shp'):
+        os.remove(tile_dsn + '*')
 
     project['restart']['idVar'] = last_fid
 
