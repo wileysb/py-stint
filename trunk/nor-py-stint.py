@@ -150,5 +150,8 @@ if __name__ == '__main__':
             # export lc isect to csv
             # export applicable modis and climate cells to csv
     import Tools.ssarV2_functions
-    Tools.ssarV2_functions.Isect_mod_clim_ssar(project)
+    if not os.path.isfile(os.path.join(project['shp_dir'],'ssarV2_tile_bounds')+'.shp'):
+        Tools.ssarV2_functions.Isect_mod_clim_ssar(project)
+    else:
+        Tools.ssarV2_functions.Restart_isect(project)
     missing_files, data_mismatch = Tools.ssarV2_functions.Check_output(project['csv_dir'])
