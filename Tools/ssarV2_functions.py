@@ -694,7 +694,7 @@ def Restart_isect(project):
     with open(lc_csv,'r') as lc:
         hdr = lc.readline()
         start = lc.readline()
-    project['restart']['modis_idVar'] = start.split(',')[2]
+    project['restart']['modis_idVar'] = int(start.split(',')[2])
 
 
     # Clean up last tile
