@@ -703,7 +703,7 @@ def Check_output(csv_dir, tolerance=1):
 
 
 def Restart_isect(project):
-    project['restart'] = []
+    project['restart'] = {}
     csv_format = os.path.join(project['csv_dir'], '{0}/ssarV2_{0}_{1}.csv')
     dsets = ['BSA_ancill', 'BSA_nir', 'BSA_sw', 'BSA_band', 'BSA_quality', 'BSA_vis', 'fsw', 'sd', 'tam', 'rr', 'swe', 'lc']
 
