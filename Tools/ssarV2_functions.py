@@ -72,8 +72,6 @@ def Isect_mod_clim_ssar(project):
     tile_dx = mod_dx * 30
     tile_dy = mod_dy * 30
 
-    # Make a mask for MODIS cells which are worth processing (contain any non-nan values from a cloud-free image)
-    modis_nanmask = Mk_modis_nanmask(project)
 
     # load ssarV1 tile bounds
     ssarV1_ds, ssarV1_lyr  = Ogr_open(project['paths']['ssarV1_tiles'])
@@ -84,24 +82,35 @@ def Isect_mod_clim_ssar(project):
     Mk_proj( utm33n_string,tiles_out )
 
      # Define shapefile path for tile_bounds.shp, with feature type polygon
-    driver = ogr.GetDriverByName('Esri Shapefile')
-    tiles_out_ds = driver.CreateDataSource(tiles_out+'.shp')
-    tiles_out_layer = tiles_out_ds.CreateLayer('',None,ogr.wkbPolygon)
-    tiles_out_layer.CreateField(ogr.FieldDefn('id',ogr.OFTInteger))
+    if 'restart' not in project.keys():
+        driver = ogr.GetDriverByName('Esri Shapefile')
+        tiles_out_ds = driver.CreateDataSource(tiles_out+'.shp')
+        tiles_out_layer = tiles_out_ds.CreateLayer('',None,ogr.wkbPolygon)
+        tiles_out_layer.CreateField(ogr.FieldDefn('id',ogr.OFTInteger))
 
 
-    # Define text field
-    field_name = ogr.FieldDefn("tile_name", ogr.OFTString)
-    field_name.SetWidth(24)
-    tiles_out_layer.CreateField(ogr.FieldDefn("tile_name", ogr.OFTString))
-    # tiles_out_layer.CreateField(ogr.FieldDefn(field_name)) # yind_xind
+        # Define text field
+        field_name = ogr.FieldDefn("tile_name", ogr.OFTString)
+        field_name.SetWidth(24)
+        tiles_out_layer.CreateField(ogr.FieldDefn("tile_name", ogr.OFTString))
+
+        idVar = project['restart']['idVar']
+        modis_idVar = project['restart']['modis_idVar']
+        modis_nanmask = project['restart']['modis_nanmask']
+
+    else:
+        # Make a mask for MODIS cells which are worth processing (contain any non-nan values from a cloud-free image)
+        modis_nanmask = Mk_modis_nanmask(project)
+
+        tiles_out_ds = ogr.Open(os.path.join(project['shp_dir'],'ssarV2_tile_bounds'), 1)
+        tiles_out_layer = tiles_out_ds.GetLayer(0)
+        idVar   = 0
+        modis_idVar = 0
+
 
     defn = tiles_out_layer.GetLayerDefn()
 
-    idVar   = 0
-    modis_idVar = 0
-    count        = 0
-    count_max    = int(math.ceil((mod_ymax-mod_ymin) / tile_dy))
+    count_max    = 3500
     progress_bar = Countdown(count_max, update_interval=.01)
 
     tile_uly = mod_ymax
@@ -226,8 +235,7 @@ def Isect_mod_clim_ssar(project):
             tile_x_ind+=1
         tile_uly -= tile_dy
         tile_y_ind+=1
-        count += 1
-        progress_bar.check(count)
+        progress_bar.check(idVar)
 
     # Save and close everything
     ds = layer = feat = perim = polygon = None
@@ -653,6 +661,7 @@ def Check_tile(tile_id, csv_fmt='/home/wiley/wrk/ntnu/ssarV2/CSV/{0}/ssarV2_{0}_
 
     return ds_diff, len(mod_ids)
 
+
 def Check_output(csv_dir, tolerance=1):
     '''missing_files, data_mismatch = Check_output(csv_dir)
 
@@ -691,3 +700,53 @@ def Check_output(csv_dir, tolerance=1):
     print count_fmt.format(cells_missing_features, total_modis_cells, len(data_mismatch))
 
     return missing_files, data_mismatch
+
+
+def Restart_isect(project):
+    project['restart'] = []
+    csv_format = os.path.join(project['csv_dir'], '{0}/ssarV2_{0}_{1}.csv')
+    dsets = ['BSA_ancill', 'BSA_nir', 'BSA_sw', 'BSA_band', 'BSA_quality', 'BSA_vis', 'fsw', 'sd', 'tam', 'rr', 'swe', 'lc']
+
+    tile_dsn = os.path.join(project['shp_dir'],'ssarV2_tile_bounds')
+
+    tiles_out_ds = ogr.Open(tile_dsn, 1)
+    tiles_out_layer = tiles_out_ds.GetLayer(0)
+
+    # Find last tile completed
+    tiles = glob.glob(os.path.join(project['csv_dir'], 'lc/*.csv'))
+    tile_ids = ['_'.join(tile.split('.')[0].split('_')[-2:]) for tile in tiles]
+    rows_cols = np.array([[int(val) for val in tile_id.split('_')] for tile_id in tile_ids])
+
+    last_row = rows_cols[np.where(rows_cols[:,0]==np.max(rows_cols[:,0]))]
+    last_tile = last_row[np.where(last_row[:,1]==np.max(last_row[:,1]))]
+
+    last_tile_id = '_'.join((str(last_tile[0]), str(last_tile[1])))
+
+    # Find first mod_idVar in last tile
+    lc_csv = csv_format.format('lc',last_tile_id)
+    with open(lc_csv,'r') as lc:
+        hdr = lc.readline()
+        start = lc.readline()
+    project['restart']['mod_idVar'] = start.split(',')[2]
+
+
+    # Clean up last tile
+    for ds in dsets:
+        if os.path.isfile(csv_format.format(ds,last_tile_id)):
+            os.remove(csv_format.format(ds,last_tile_id))
+
+    last_fid = tiles_out_layer.GetFeatureCount()-1
+    last_feat = tiles_out_layer.GetFeature(last_fid)
+    last_feat_tile_id = last_feat.GetField('tile_id')
+    if last_feat_tile_id==last_tile_id: # else this tile
+        del last_feat
+        tiles_out_layer.DeleteFeature(last_fid)
+
+    project['restart']['idVar'] = last_fid
+
+    # Update nanmask to prevent duplication of already finished tiles
+    project['restart']['modis_nanmask'] = Mk_modis_nanmask(project)
+    project['restart']['modis_nanmask'][rows_cols[:,0], rows_cols[:,1]] = 0
+
+    Isect_mod_clim_ssar(project)
+    # todo find which ogr op is throwing empty intersection warnings and logic it
