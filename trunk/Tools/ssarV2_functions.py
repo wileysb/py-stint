@@ -703,13 +703,6 @@ def Restart_isect(project):
         if os.path.isfile(csv_format.format(ds,last_tile_id)):
             os.remove(csv_format.format(ds,last_tile_id))
 
-    print 'Removing tile bounds'
-
-    tile_dsn = os.path.join(project['shp_dir'],'ssarV2_tile_bounds')
-
-    if os.path.isfile(tile_dsn + '.shp'):
-        os.remove(tile_dsn + '*')
-
     # Update nanmask to prevent duplication of already finished tiles
     project['restart']['modis_nanmask'] = Mk_modis_nanmask(project)
     project['restart']['modis_nanmask'][rows_cols[:,0], rows_cols[:,1]] = 0
