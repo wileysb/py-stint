@@ -709,7 +709,7 @@ def Restart_isect(project):
 
     tile_dsn = os.path.join(project['shp_dir'],'ssarV2_tile_bounds')
 
-    tiles_out_ds = ogr.Open(tile_dsn, 1)
+    tiles_out_ds = ogr.Open(tile_dsn+'.shp', 1)
     tiles_out_layer = tiles_out_ds.GetLayer(0)
 
     # Find last tile completed
