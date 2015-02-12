@@ -718,7 +718,7 @@ def Restart_isect(project):
     rows_cols = np.array([[int(val) for val in tile_id.split('_')] for tile_id in tile_ids])
 
     last_row = rows_cols[np.where(rows_cols[:,0]==np.max(rows_cols[:,0]))]
-    last_tile = last_row[np.where(last_row[:,1]==np.max(last_row[:,1]))]
+    last_tile = last_row[np.where(last_row[:,1]==np.max(last_row[:,1]))][0]
 
     last_tile_id = '_'.join((str(last_tile[0]), str(last_tile[1])))
 
