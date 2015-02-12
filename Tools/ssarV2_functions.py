@@ -731,6 +731,7 @@ def Restart_isect(project):
 
 
     # Clean up last tile
+    print 'Removing ',last_tile_id
     for ds in dsets:
         if os.path.isfile(csv_format.format(ds,last_tile_id)):
             os.remove(csv_format.format(ds,last_tile_id))
