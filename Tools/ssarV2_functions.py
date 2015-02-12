@@ -78,7 +78,7 @@ def Isect_mod_clim_ssar(project):
     ssarV1_r = FastRtree(project['paths']['ssarV1_tiles'])
 
      # Define shapefile path for tile_bounds.shp, with feature type polygon
-    if 'restart' not in project.keys():
+    if 'restart' in project.keys():
         modis_idVar = project['restart']['modis_idVar']
         modis_nanmask = project['restart']['modis_nanmask']
 
@@ -702,6 +702,11 @@ def Restart_isect(project):
     for ds in dsets:
         if os.path.isfile(csv_format.format(ds,last_tile_id)):
             os.remove(csv_format.format(ds,last_tile_id))
+
+    # Remake rows_cols
+    tiles = glob.glob(os.path.join(project['csv_dir'], 'lc/*.csv'))
+    tile_ids = ['_'.join(tile.split('.')[0].split('_')[-2:]) for tile in tiles]
+    rows_cols = np.array([[int(val) for val in tile_id.split('_')] for tile_id in tile_ids])
 
     # Update nanmask to prevent duplication of already finished tiles
     project['restart']['modis_nanmask'] = Mk_modis_nanmask(project)
