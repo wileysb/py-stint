@@ -731,11 +731,12 @@ def Restart_isect(project):
 
 
     # Clean up last tile
-    print 'Removing ',last_tile_id
+    print 'Removing output:',last_tile_id
     for ds in dsets:
         if os.path.isfile(csv_format.format(ds,last_tile_id)):
             os.remove(csv_format.format(ds,last_tile_id))
 
+    print 'Removing tile bounds'
     last_fid = tiles_out_layer.GetFeatureCount()-1
     last_feat = tiles_out_layer.GetFeature(last_fid)
     last_feat_tile_id = last_feat.GetField('tile_id')
