@@ -77,39 +77,18 @@ def Isect_mod_clim_ssar(project):
     ssarV1_ds, ssarV1_lyr  = Ogr_open(project['paths']['ssarV1_tiles'])
     ssarV1_r = FastRtree(project['paths']['ssarV1_tiles'])
 
-    # prepare tile_bounds out
-    tiles_out = os.path.join(project['shp_dir'],'ssarV2_tile_bounds')
-    Mk_proj( utm33n_string,tiles_out )
-
      # Define shapefile path for tile_bounds.shp, with feature type polygon
     if 'restart' not in project.keys():
-        driver = ogr.GetDriverByName('Esri Shapefile')
-        tiles_out_ds = driver.CreateDataSource(tiles_out+'.shp')
-        tiles_out_layer = tiles_out_ds.CreateLayer('',None,ogr.wkbPolygon)
-        tiles_out_layer.CreateField(ogr.FieldDefn('id',ogr.OFTInteger))
-
-
-        # Define text field
-        field_name = ogr.FieldDefn("tile_name", ogr.OFTString)
-        field_name.SetWidth(24)
-        tiles_out_layer.CreateField(ogr.FieldDefn("tile_name", ogr.OFTString))
-
-        idVar = project['restart']['idVar']
         modis_idVar = project['restart']['modis_idVar']
         modis_nanmask = project['restart']['modis_nanmask']
 
     else:
         # Make a mask for MODIS cells which are worth processing (contain any non-nan values from a cloud-free image)
         modis_nanmask = Mk_modis_nanmask(project)
-
-        tiles_out_ds = ogr.Open(os.path.join(project['shp_dir'],'ssarV2_tile_bounds'), 1)
-        tiles_out_layer = tiles_out_ds.GetLayer(0)
-        idVar   = 0
         modis_idVar = 0
 
 
-    defn = tiles_out_layer.GetLayerDefn()
-
+    idVar = 0
     count_max    = 3500
     progress_bar = Countdown(count_max, update_interval=.01)
 
@@ -146,12 +125,6 @@ def Isect_mod_clim_ssar(project):
                             tile_id = '{0}_{1}'.format(tile_y_ind,tile_x_ind)
 
                             # check for intersection with climate
-                            feat = ogr.Feature(defn)
-                            feat.SetField('id',idVar)
-                            feat.SetField('tile_name',tile_id)
-                            feat.SetGeometry(tile_bbox_utm33)
-
-                            tiles_out_layer.CreateFeature(feat)
                             feat =  None
                             idVar += 1
 
@@ -237,8 +210,6 @@ def Isect_mod_clim_ssar(project):
         tile_y_ind+=1
         progress_bar.check(idVar)
 
-    # Save and close everything
-    ds = layer = feat = perim = polygon = None
     progress_bar.flush()
 
 
@@ -738,8 +709,6 @@ def Restart_isect(project):
 
     if os.path.isfile(tile_dsn + '.shp'):
         os.remove(tile_dsn + '*')
-
-    project['restart']['idVar'] = last_fid
 
     # Update nanmask to prevent duplication of already finished tiles
     project['restart']['modis_nanmask'] = Mk_modis_nanmask(project)
