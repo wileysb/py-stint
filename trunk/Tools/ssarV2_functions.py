@@ -751,7 +751,7 @@ def Pack_it_up(project):
             Write_out_unfilled(unfilled_csv, unfilled_modis)
         file_list = [csv_format.format(ds, tile_id) for ds in dsets]
         if unfilled==True:
-            file_list.append()
+            file_list.append(unfilled_csv)
         archive_fn = os.path.join(project['csv_dir'], 'ZIP', 'ssarV2_'+tile_id+'.zip')
         Zip_files(archive_fn, file_list)
 
