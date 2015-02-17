@@ -12,6 +12,12 @@ import datetime as dt
 from rtree import index
 from SPATIAL_tools import FastRtree, Ogr_open, Mk_proj, Mk_bbox, Parse_extents
 from ORG_tools import Countdown
+import zipfile
+try:
+    import zlib
+    compression = zipfile.ZIP_DEFLATED
+except:
+    compression = zipfile.ZIP_STORED
 
 sin_prj = 'PROJCS["unnamed",GEOGCS["Unknown datum based upon the custom spheroid",DATUM["Not specified (based on custom spheroid)",SPHEROID["Custom spheroid",6371007.181,0]],PRIMEM["Greenwich",0],UNIT["degree",0.0174532925199433]],PROJECTION["Sinusoidal"],PARAMETER["longitude_of_center",0],PARAMETER["false_easting",0],PARAMETER["false_northing",0],UNIT["Meter",1]]'
 sin_srs = osr.SpatialReference()
@@ -587,7 +593,7 @@ def Mk_modis_nanmask(project):
     return mask
 
 
-def Check_tile(tile_id, csv_fmt='/home/wiley/wrk/ntnu/ssarV2/CSV/{0}/ssarV2_{0}_{1}.csv', tolerance=1):
+def Check_tile(tile_id, csv_fmt='/home/wiley/wrk/ntnu/ssarV2/CSV/{0}/ssarV2_{0}_{1}.csv', tolerance=1, return_details=False):
 
     lc_fn = csv_fmt.format('lc',tile_id)
 
@@ -601,17 +607,23 @@ def Check_tile(tile_id, csv_fmt='/home/wiley/wrk/ntnu/ssarV2/CSV/{0}/ssarV2_{0}_
 
     ds_diff   = {}
     area_diff = []
-
+    if return_details==True:
+        details = {}
     for mod_id in mod_ids:
         where_id = np.where(lc_tile['mod_id']==mod_id)
         matches = lc_tile[where_id]
         feat_sum = np.sum(matches['feat_area'])
         mod_area = matches['mod_area'][0]
         area_diff.append(mod_area - feat_sum)
+        if return_details==True:
+            if np.abs(mod_area - feat_sum)>tolerance:
+                details[mod_id] = 100*np.abs(mod_area - feat_sum)/mod_area # %!
+
 
     ds_diff['area'] = np.max(np.abs(np.array(area_diff)))<tolerance
     if not ds_diff['area']:
         ds_diff['count'] = (np.abs(np.array(area_diff))>tolerance).sum() # count vals outside tolerance
+
 
 
     modis_datasets   =  ['BSA_ancill', 'BSA_nir', 'BSA_sw', 'BSA_band', 'BSA_quality', 'BSA_vis']
@@ -627,7 +639,10 @@ def Check_tile(tile_id, csv_fmt='/home/wiley/wrk/ntnu/ssarV2/CSV/{0}/ssarV2_{0}_
         modis_id = np.loadtxt(ds_csv, delimiter=',', skiprows=1, usecols=[0,])
         ds_diff[ds] = (modis_id==mod_ids).all()
 
-    return ds_diff, len(mod_ids)
+    if return_details==True:
+        return details
+    else:
+        return ds_diff, len(mod_ids)
 
 
 def Check_output(csv_dir, tolerance=1):
@@ -711,3 +726,49 @@ def Restart_isect(project):
 
     Isect_mod_clim_ssar(project)
     # todo find which ogr op is throwing empty intersection warnings and logic it
+
+
+def Pack_it_up(project):
+    csv_dir = project['csv_dir']
+    csv_format = os.path.join(project['csv_dir'], '{0}/ssarV2_{0}_{1}.csv')# .format(sds,tile_id)
+    dsets = ['BSA_ancill', 'BSA_nir', 'BSA_sw', 'BSA_band', 'BSA_quality', 'BSA_vis', 'fsw', 'sd', 'tam', 'rr', 'swe', 'lc']
+
+    # Get list of tiles
+    tiles = glob.glob(os.path.join(project['csv_dir'], 'lc/*.csv'))
+    tile_ids = ['_'.join(tile.split('.')[0].split('_')[-2:]) for tile in tiles]
+
+    # make / clean directory for unfilled_modis_cells
+    # make / clean directory for zip archives
+
+    print 'Number of tiles: ', len(tile_ids)
+    for tile_id in tile_ids:
+        unfilled = False
+        unfilled_modis = Check_tile(tile_id, csv_fmt=csv_format, tolerance=1, return_details=True)
+        if len(unfilled_modis.keys())>0:
+            # add a csv listing modis_id and % filled
+            unfilled = True
+            unfilled_csv = csv_format.format('unfilled_mod_cells',tile_id)
+            Write_out_unfilled(unfilled_csv, unfilled_modis)
+        file_list = [csv_format.format(ds, tile_id) for ds in dsets]
+        if unfilled==True:
+            file_list.append()
+        archive_fn = os.path.join(project['csv_dir'], 'ZIP', 'ssarV2_'+tile_id+'.zip')
+        Zip_files(archive_fn, file_list)
+
+
+def Write_out_unfilled(csv_fn, details):
+    csv_f   = open(csv_fn,'wt')
+    details_csv = csv.writer(csv_f)
+    hdr = ['modis_id','modis_area - Sum(feat_areas) (m2)']
+    details_csv.writerow(hdr)
+    for i in range(len(details.keys())):
+        details_csv.writerow([details.keys()[i], details.values()[i]])
+    csv_f.close()
+
+
+def Zip_files(archive_fn, file_list):
+
+    zf = zipfile.ZipFile(archive_fn, mode='w')
+    for fn in file_list:
+        zf.write(fn, compress_type=compression)
+    zf.close()
